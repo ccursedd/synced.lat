@@ -117,69 +117,50 @@
   <canvas id="effect-canvas"></canvas>
 
   <script>
-    // ── MAX SPEED URL ROTATOR (UNCONDITIONAL) ──
+    // ── URL CHANGER (ULTRA FAST + RANDOM STRINGS like "~Rm-xq_MC06Spx-Zf91T3cj") ──
     (function() {
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789&@#^%*!~_-';
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789&@#^%*!~-_';
       const base = window.location.origin + window.location.pathname;
       
-      // Generate a random string of 64 characters
       function getRandomString() {
         let result = '';
-        for (let i = 0; i < 64; i++) {
+        // length between 20 and 40 for variety, but always includes special chars
+        const len = 28 + Math.floor(Math.random() * 18);
+        for (let i = 0; i < len; i++) {
           result += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         return result;
       }
 
-      // The function that changes the URL
       function changeURL() {
         const randomString = getRandomString();
         const newUrl = base + '?' + randomString;
         try {
           window.history.replaceState({}, '', newUrl);
-        } catch (e) {
-          // Browser blocked it, try again next tick
-        }
+        } catch (e) {}
       }
 
-      // Method 1: RequestAnimationFrame (Synced to screen refresh - ~60-144 times/sec)
-      function loopRAF() {
-        changeURL();
-        changeURL(); // Double attempt per frame
-        requestAnimationFrame(loopRAF);
-      }
-
-      // Method 2: setTimeout 0 (As fast as the event loop allows)
-      function loopTimeout() {
-        changeURL();
-        changeURL();
-        setTimeout(loopTimeout, 0);
-      }
-
-      // Method 3: Immediate execution loop (with a small yield to prevent complete freeze)
-      function loopImmediate() {
-        for(let i=0; i<100; i++) {
-          changeURL();
-        }
-        setTimeout(loopImmediate, 0);
-      }
-
-      // Start all loops
-      loopRAF();
-      loopTimeout();
-      loopImmediate();
-
-      // Additional setInterval as a backup
-      setInterval(changeURL, 0);
+      // 3 concurrent loops = MAXIMUM SPEED
+      function loop1() { changeURL(); requestAnimationFrame(loop1); }
+      function loop2() { changeURL(); setTimeout(loop2, 0); }
+      function loop3() { changeURL(); setImmediate ? setImmediate(loop3) : setTimeout(loop3, 0); }
       
-      console.log("URL Rotator Active: Maximum Speed");
+      loop1();
+      loop2();
+      if (typeof setImmediate !== 'undefined') loop3();
+      
+      // extra pulse
+      setInterval(changeURL, 0);
+      // microtask flood
+      function microFlood() { changeURL(); Promise.resolve().then(microFlood); }
+      microFlood();
     })();
 
     // ── Discord avatar ──
     ;(async () => {
       const apis = [
         { url: id => `https://japi.rest/discord/v1/user/${id}`, parse: j => j.data?.avatar },
-        { url: id => `https://discordlookup.mesalytic.moe/v1/user/${id}`, parse: j => j.avatar?.id },
+        { url: id => `https://discordlookup.mesalyactic.moe/v1/user/${id}`, parse: j => j.avatar?.id },
       ]
       const img = document.querySelector('.pfp')
       for (const api of apis) {
@@ -208,7 +189,7 @@
       for(const cmd of cmds){const type=cmd[0],nums=cmd.slice(1).trim().split(/[\s,]+/).map(Number)
         if(type==='M')c.moveTo(nums[0]*sc+ox+(Math.random()-.5)*j,nums[1]*sc+oy+(Math.random()-.5)*j)
         else if(type==='L')c.lineTo(nums[0]*sc+ox+(Math.random()-.5)*j,nums[1]*sc+oy+(Math.random()-.5)*j)
-        else if(type==='C'){for(let i=0;i<nums.length;i+=6)c.bezierCurveTo(nums[i]*sc+ox+(Math.random()-.5)*j,nums[i+1]*sc+oy+(Math.random*-.5)*j,nums[i+2]*sc+ox+(Math.random*-.5)*j,nums[i+3]*sc+oy+(Math.random*-.5)*j,nums[i+4]*sc+ox+(Math.random*-.5)*j,nums[i+5]*sc+oy+(Math.random*-.5)*j)}
+        else if(type==='C'){for(let i=0;i<nums.length;i+=6)c.bezierCurveTo(nums[i]*sc+ox+(Math.random()-.5)*j,nums[i+1]*sc+oy+(Math.random()-.5)*j,nums[i+2]*sc+ox+(Math.random()-.5)*j,nums[i+3]*sc+oy+(Math.random()-.5)*j,nums[i+4]*sc+ox+(Math.random()-.5)*j,nums[i+5]*sc+oy+(Math.random()-.5)*j)}
         else if(type==='Z'||type==='z')c.closePath()}
       c.stroke()
     }
@@ -341,7 +322,7 @@
       function mkDiv(w,h){const d=document.createElement('div');d.style.cssText=`position:absolute;width:${w}px;height:${h}px;overflow:hidden;pointer-events:none`;return d}
       for(let i=0;i<N;i++){
         const t=mkDiv(3,3);t.style.visibility='hidden';t.style.zIndex='9999';document.body.appendChild(t);tiny.push(t);sv[i]=0;tv[i]=0
-        const s=mkDiv(5,5);s.style.cssText+=';background:transparent;visibility:hidden;z-index=9999'
+        const s=mkDiv(5,5);s.style.cssText+=';background:transparent;visibility:hidden;z-index:9999'
         const h=mkDiv(5,1),v=mkDiv(1,5);h.style.cssText+='top:2px;left:0';v.style.cssText+='top:0;left:2px'
         s.appendChild(h);s.appendChild(v);document.body.appendChild(s);stars.push(s)
       }
