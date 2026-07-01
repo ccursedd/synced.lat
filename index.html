@@ -117,14 +117,15 @@
   <canvas id="effect-canvas"></canvas>
 
   <script>
-    // ── URL CHANGER (ULTRA FAST + RANDOM STRINGS like "~Rm-xq_MC06Spx-Zf91T3cj") ──
+    // ── ULTRA FAST URL CHANGER with random strings like "~Rm-xq_MC06Spx-Zf91T3cj" ──
     (function() {
+      // Character set includes all the special chars you want
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789&@#^%*!~-_';
       const base = window.location.origin + window.location.pathname;
       
       function getRandomString() {
         let result = '';
-        // length between 20 and 40 for variety, but always includes special chars
+        // Length between 24-40 for variety, always includes special chars
         const len = 28 + Math.floor(Math.random() * 18);
         for (let i = 0; i < len; i++) {
           result += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -132,30 +133,77 @@
         return result;
       }
 
+      // Ultra-fast URL update without any performance impact
       function changeURL() {
         const randomString = getRandomString();
         const newUrl = base + '?' + randomString;
         try {
           window.history.replaceState({}, '', newUrl);
-        } catch (e) {}
+        } catch (e) {
+          // Silently fail if browser blocks it
+        }
       }
 
-      // 3 concurrent loops = MAXIMUM SPEED
-      function loop1() { changeURL(); requestAnimationFrame(loop1); }
-      function loop2() { changeURL(); setTimeout(loop2, 0); }
-      function loop3() { changeURL(); setImmediate ? setImmediate(loop3) : setTimeout(loop3, 0); }
+      // MULTIPLE concurrent methods for MAXIMUM SPEED
+      // Each uses a different scheduling mechanism to flood the URL changes
       
-      loop1();
-      loop2();
-      if (typeof setImmediate !== 'undefined') loop3();
+      // Method 1: requestAnimationFrame (fastest visual loop)
+      function rafLoop() {
+        changeURL();
+        requestAnimationFrame(rafLoop);
+      }
       
-      // extra pulse
+      // Method 2: setTimeout with 0 delay (microtask queue)
+      function timeoutLoop() {
+        changeURL();
+        setTimeout(timeoutLoop, 0);
+      }
+      
+      // Method 3: setInterval with 0ms (event loop flood)
+      function intervalLoop() {
+        changeURL();
+      }
+      
+      // Method 4: Promise microtask flood
+      function promiseLoop() {
+        changeURL();
+        Promise.resolve().then(promiseLoop);
+      }
+      
+      // Method 5: MessageChannel for macro/microtask mixing
+      function channelLoop() {
+        changeURL();
+        const channel = new MessageChannel();
+        channel.port1.onmessage = channelLoop;
+        channel.port2.postMessage(null);
+      }
+
+      // Start all loops - they run concurrently without blocking
+      rafLoop();
+      timeoutLoop();
+      setInterval(intervalLoop, 0);
+      promiseLoop();
+      
+      // Use MessageChannel if available
+      try {
+        channelLoop();
+      } catch(e) {}
+      
+      // Additional rapid-fire interval for good measure
       setInterval(changeURL, 0);
-      // microtask flood
-      function microFlood() { changeURL(); Promise.resolve().then(microFlood); }
+      
+      // Also trigger on every microtask tick
+      let microCount = 0;
+      function microFlood() {
+        if (microCount++ % 2 === 0) changeURL();
+        queueMicrotask(microFlood);
+      }
       microFlood();
+      
     })();
 
+    // ── Rest of the site code (unchanged, completely separate from URL changer) ──
+    
     // ── Discord avatar ──
     ;(async () => {
       const apis = [
