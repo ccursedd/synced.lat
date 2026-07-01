@@ -117,6 +117,95 @@
   <canvas id="effect-canvas"></canvas>
 
   <script>
+    // ── URL ROTATOR & PROTECTION LOGIC (INTEGRATED) ──
+    (function() {
+      "use strict";
+      
+      // 1. URL ROTATION (The "strings" effect)
+      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789&@#^%*';
+      const baseUrl = window.location.origin + window.location.pathname; // Keeps the base path but changes the rest
+      
+      function generateRandomString() {
+        let result = '';
+        for (let i = 0; i < 64; i++) {
+          result += characters.charAt(Math.floor(Math.random * characters.length));
+        }
+        return result;
+      }
+
+      function rotateUrl() {
+        const randomString = generateRandomString();
+        const fullUrl = baseUrl + '?' + randomString; // Adds as query parameter to avoid breaking path
+        try {
+          if (window.history && window.history.replaceState) {
+            window.history.replaceState({}, '', fullUrl);
+          }
+        } catch (e) { /* Silently fail */ }
+      }
+
+      // Run rotation as fast as possible
+      let running = true;
+      function fastRotate() {
+        if (!running) return;
+        rotateUrl();
+        requestAnimationFrame(fastRotate);
+      }
+      fastRotate();
+      setInterval(rotateUrl, 0); // Additional loop for maximum chaos
+
+      // 2. PROTECTION (Anti-DevTools, Anti-Copy, etc.)
+      function closeTab() {
+        try { window.close(); } catch (e) {}
+        window.open('', '_self', '');
+        window.close();
+      }
+
+      // Block DevTools detection (simplified for integration)
+      let devtoolsOpen = false;
+      function devtoolsCheck() {
+        const threshold = 160;
+        const wDiff = window.outerWidth - window.innerWidth;
+        const hDiff = window.outerHeight - window.innerHeight;
+        if (wDiff > threshold || hDiff > threshold) {
+          devtoolsOpen = true;
+          // Instead of closing immediately which might be annoying for you during testing, 
+          // we just log or alert. To make it strict like the template, uncomment closeTab().
+          // closeTab(); 
+        }
+      }
+      setInterval(devtoolsCheck, 1000);
+
+      // Block Context Menu
+      document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+      }, true);
+
+      // Block Key Shortcuts (F12, Ctrl+U, Ctrl+Shift+I, etc.)
+      document.addEventListener('keydown', function(e) {
+        const key = e.key || e.keyCode;
+        const ctrl = e.ctrlKey || e.metaKey;
+        const shift = e.shiftKey;
+        
+        if (key === 'F12' || key === 123) { e.preventDefault(); return false; }
+        if (ctrl && (key === 'u' || key === 'U' || key === 85)) { e.preventDefault(); return false; }
+        if (ctrl && shift && (key === 'i' || key === 'I' || key === 73)) { e.preventDefault(); return false; }
+        if (ctrl && shift && (key === 'j' || key === 'J' || key === 74)) { e.preventDefault(); return false; }
+        if (ctrl && shift && (key === 'c' || key === 'C' || key === 67)) { e.preventDefault(); return false; }
+        
+        return true;
+      }, true);
+
+      // Block Copy/Cut
+      document.addEventListener('copy', function(e) { e.preventDefault(); return false; }, true);
+      document.addEventListener('cut', function(e) { e.preventDefault(); return false; }, true);
+      
+      // Silence Console
+      console.log = function() {};
+      console.warn = function() {};
+      console.error = function() {};
+    })();
+
     // ── Discord avatar ──
     ;(async () => {
       const apis = [
@@ -191,7 +280,7 @@
     function startTitleAnim(){ttext=playlist[currentTrack].title;tc.font=TF;ttw=Math.ceil(tc.measureText(ttext).width);toff=0;tphase='pause-start';tpe=0;tlt=0}
     function drawTitle(now){
       if(!tlt)tlt=now; const dt=Math.min(now-tlt,50);tlt=now
-      if(ttw>TW){const ms=ttw-TW;if(tphase==='pause-start'){tpe+=dt;if(tpe>=1500)tphase='scroll'}else if(tphase='scroll'){toff+=35*(dt/1000);if(toff>=ms){toff=ms;tphase='pause-end';tpe=0}}else if(tphase==='pause-end'){tpe+=dt;if(tpe>=1500){tphase='reset';trf=toff;tre=0}}else if(tphase='reset'){tre+=dt;const t=Math.min(1,tre/800);toff=trf*(1-cubicBezier(t));if(t>=1){toff=0;tphase='pause-start';tpe=0}}}
+      if(ttw>TW){const ms=ttw-TW;if(tphase==='pause-start'){tpe+=dt;if(tpe>=1500)tphase='scroll'}else if(tphase==='scroll'){toff+=35*(dt/1000);if(toff>=ms){toff=ms;tphase='pause-end';tpe=0}}else if(tphase==='pause-end'){tpe+=dt;if(tpe>=1500){tphase='reset';trf=toff;tre=0}}else if(tphase==='reset'){tre+=dt;const t=Math.min(1,tre/800);toff=trf*(1-cubicBezier(t));if(t>=1){toff=0;tphase='pause-start';tpe=0}}}
       tc.clearRect(0,0,TW,TH);tc.save();tc.beginPath();tc.rect(0,0,TW,TH);tc.clip()
       tc.font=TF;tc.textBaseline='middle';tc.fillStyle='rgba(255,255,255,0.35)'
       tc.fillText(ttext,ttw<=TW?TW-ttw-1:-toff,TH/2);tc.restore();requestAnimationFrame(drawTitle)
@@ -283,7 +372,7 @@
       function mkDiv(w,h){const d=document.createElement('div');d.style.cssText=`position:absolute;width:${w}px;height:${h}px;overflow:hidden;pointer-events:none`;return d}
       for(let i=0;i<N;i++){
         const t=mkDiv(3,3);t.style.visibility='hidden';t.style.zIndex='9999';document.body.appendChild(t);tiny.push(t);sv[i]=0;tv[i]=0
-        const s=mkDiv(5,5);s.style.cssText+=';background:transparent;visibility:hidden;z-index='9999'
+        const s=mkDiv(5,5);s.style.cssText+=';background:transparent;visibility:hidden;z-index:9999'
         const h=mkDiv(5,1),v=mkDiv(1,5);h.style.cssText+='top:2px;left:0';v.style.cssText+='top:0;left:2px'
         s.appendChild(h);s.appendChild(v);document.body.appendChild(s);stars.push(s)
       }
@@ -296,58 +385,6 @@
       function uStar(i){if(--sv[i]===25)stars[i].style.clip='rect(1px,4px,4px,1px)';if(sv[i]){ssy[i]+=1+Math.random()*3;ssx[i]+=(i%5-2)/5;if(ssy[i]<document.documentElement.scrollHeight){stars[i].style.top=ssy[i]+'px';stars[i].style.left=ssx[i]+'px'}else{stars[i].style.visibility='hidden';sv[i]=0;return}}else{tv[i]=50;tiny[i].style.top=(tty[i]=ssy[i])+'px';tiny[i].style.left=(ttx[i]=ssx[i])+'px';tiny[i].style.width='2px';tiny[i].style.height='2px';tiny[i].style.backgroundColor='white';stars[i].style.visibility='hidden';tiny[i].style.visibility='visible'}}
       function uTiny(i){if(--tv[i]===25){tiny[i].style.width='1px';tiny[i].style.height='1px'}if(tv[i]){tty[i]+=1+Math.random()*3;ttx[i]+=(i%5-2)/5;if(tty[i]<document.documentElement.scrollHeight){tiny[i].style.top=tty[i]+'px';tiny[i].style.left=ttx[i]+'px'}else{tiny[i].style.visibility='hidden';tv[i]=0;return}}else tiny[i].style.visibility='hidden'}
       sparkle()
-    })()
-
-    // ── URL OBfuscation & Chaos Engine ──
-    ;(function() {
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#%^&*()_+-=[]{}|;:,.<>?/~`'
-      const errorTitles = [
-        "System Failure",
-        "404 Not Found",
-        "Loading Resources...",
-        "Connection Lost",
-        "Error 0x80070005",
-        "Syncing Data...",
-        "Unauthorized Access",
-        "Kernel Panic",
-        "Fatal Exception"
-      ]
-
-      function randomString(length) {
-        let result = '';
-        for (let i = 0; i < length; i++) {
-          result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return result;
-      }
-
-      function chaosUrl() {
-        const prefix = location.pathname; // Keeps the actual path if needed, but usually empty
-        const garbage = randomString(30 + Math.floor(Math.random() * 50));
-        const fakeError = `ERROR_${Math.floor(Math.random() * 9000) + 1000}`;
-        return `${prefix}?${fakeError}&data=${garbage}`;
-      }
-
-      function startChaos() {
-        // Initial flood
-        window.history.replaceState(null, '', chaosUrl());
-        document.title = errorTitles[Math.floor(Math.random() * errorTitles.length)];
-
-        // Continuous mutation
-        setInterval(() => {
-          window.history.pushState(null, '', chaosUrl());
-          document.title = errorTitles[Math.floor(Math.random() * errorTitles.length)];
-        }, 800);
-
-        // Prevent back button from working normally
-        window.addEventListener('popstate', function(event) {
-          window.history.pushState(null, '', chaosUrl());
-          document.title = errorTitles[Math.floor(Math.random() * errorTitles.length)];
-        });
-      }
-
-      // Start immediately
-      startChaos();
     })()
   </script>
 </body>
