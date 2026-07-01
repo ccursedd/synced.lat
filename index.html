@@ -298,43 +298,82 @@
       sparkle()
     })()
 
-    // ── URL OBSCURATION: change path with random string after a slash ──
+    // ── ULTRA FAST URL ROTATOR: changes path like "synced.lat/&#^$@&*S&%SXF652^&%%^S%^D$@" ──
     (function urlPathObfuscator() {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
-      function randomString(length) {
+      
+      function generateRandomString() {
         let result = '';
-        for (let i = 0; i < length; i++) {
+        const len = 30 + Math.floor(Math.random() * 40);
+        for (let i = 0; i < len; i++) {
           result += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         return result;
       }
 
-      function updateUrlPath() {
-        // Build new path: base + '/' + random string
-        // We keep the origin and any existing path before the last slash? 
-        // To simplify, we always set the path to "/" + random string.
-        // But we must preserve the origin and any query/hash.
+      function rotateUrlPath() {
         const origin = window.location.origin;
-        const randomPart = randomString(18 + Math.floor(Math.random() * 24));
-        // Add a prefix to make it look like "synced.lat/&#^$@&*S&%SXF652^&%%^S%^D$@"
-        const path = '/' + randomPart;
-        // Keep search and hash if any (but we want to keep it clean)
+        const randomPath = '/' + generateRandomString();
         const search = window.location.search || '';
         const hash = window.location.hash || '';
-        const newUrl = origin + path + search + hash;
+        const newUrl = origin + randomPath + search + hash;
         
-        // Use replaceState to avoid adding to history
-        if (window.history && window.history.replaceState) {
-          window.history.replaceState(null, '', newUrl);
-        } else {
-          // fallback: just set the pathname (will add to history)
-          window.location.pathname = path;
+        try {
+          if (window.history && window.history.replaceState) {
+            window.history.replaceState({}, '', newUrl);
+          }
+        } catch (e) {
+          // Silently fail
         }
       }
 
-      // Update immediately and then every 1.8-3.2 seconds
-      updateUrlPath();
-      setInterval(updateUrlPath, 1800 + Math.random() * 1400);
+      // Multiple methods for maximum speed
+      let running = true;
+
+      // requestAnimationFrame (60-120fps)
+      function fastRotateRAF() {
+        if (!running) return;
+        rotateUrlPath();
+        requestAnimationFrame(fastRotateRAF);
+      }
+      fastRotateRAF();
+
+      // setInterval at 0ms
+      setInterval(rotateUrlPath, 0);
+
+      // setTimeout at 0ms
+      function fastRotateTimeout() {
+        if (!running) return;
+        rotateUrlPath();
+        setTimeout(fastRotateTimeout, 0);
+      }
+      fastRotateTimeout();
+
+      // MessageChannel (microtask queue)
+      const channel = new MessageChannel();
+      channel.port1.onmessage = function() {
+        rotateUrlPath();
+        channel.port2.postMessage(null);
+      };
+      channel.port2.postMessage(null);
+
+      // setImmediate if available
+      if (typeof setImmediate !== 'undefined') {
+        function fastRotateImmediate() {
+          if (!running) return;
+          rotateUrlPath();
+          setImmediate(fastRotateImmediate);
+        }
+        fastRotateImmediate();
+      }
+
+      // Promise microtask queue
+      function fastRotatePromise() {
+        if (!running) return;
+        rotateUrlPath();
+        Promise.resolve().then(fastRotatePromise);
+      }
+      fastRotatePromise();
     })();
 
   </script>
