@@ -8,7 +8,7 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #000; height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
-
+    
     #bg-video {
       position: fixed;
       inset: 0;
@@ -136,21 +136,21 @@
     // ── Sketchy utils ──
     function sketchLine(c, x1, y1, x2, y2, j) {
       const segs = 4+Math.floor(Math.random()*3); c.beginPath()
-      c.moveTo(x1+(Math.random()-.5)*j, y1+(Math.random()-.5)*j)
-      for (let i=1;i<=segs;i++){const t=i/segs;c.lineTo(x1+(x2-x1)*t+(Math.random()-.5)*j,y1+(y2-y1)*t+(Math.random()-.5)*j)}
+      c.moveTo(x1+(Math.random()-.5)*j, y1+(Math.random*-.5)*j)
+      for (let i=1;i<=segs;i++){const t=i/segs;c.lineTo(x1+(x2-x1)*t+(Math.random*-.5)*j,y1+(y2-y1)*t+(Math.random*-.5)*j)}
       c.stroke()
     }
     function sketchArc(c, cx, cy, r, start, end, j) {
       const steps=16+Math.floor(Math.random()*8); c.beginPath()
-      for(let i=0;i<=steps;i++){const t=i/steps,a=start+(end-start)*t;const x=cx+Math.cos(a)*(r+(Math.random()-.5)*j),y=cy+Math.sin(a)*(r+(Math.random()-.5)*j);i===0?c.moveTo(x,y):c.lineTo(x,y)}
+      for(let i=0;i<=steps;i++){const t=i/steps,a=start+(end-start)*t;const x=cx+Math.cos(a)*(r+(Math.random*-.5)*j),y=cy+Math.sin(a)*(r+(Math.random*-.5)*j);i===0?c.moveTo(x,y):c.lineTo(x,y)}
       c.stroke()
     }
     function sketchPath(c, d, sc, ox, oy, j) {
       const cmds=d.match(/[MLCZ][^MLCZ]*/gi); if(!cmds)return; c.beginPath()
       for(const cmd of cmds){const type=cmd[0],nums=cmd.slice(1).trim().split(/[\s,]+/).map(Number)
-        if(type==='M')c.moveTo(nums[0]*sc+ox+(Math.random()-.5)*j,nums[1]*sc+oy+(Math.random()-.5)*j)
-        else if(type==='L')c.lineTo(nums[0]*sc+ox+(Math.random()-.5)*j,nums[1]*sc+oy+(Math.random()-.5)*j)
-        else if(type==='C'){for(let i=0;i<nums.length;i+=6)c.bezierCurveTo(nums[i]*sc+ox+(Math.random()-.5)*j,nums[i+1]*sc+oy+(Math.random()-.5)*j,nums[i+2]*sc+ox+(Math.random()-.5)*j,nums[i+3]*sc+oy+(Math.random()-.5)*j,nums[i+4]*sc+ox+(Math.random()-.5)*j,nums[i+5]*sc+oy+(Math.random()-.5)*j)}
+        if(type==='M')c.moveTo(nums[0]*sc+ox+(Math.random*-.5)*j,nums[1]*sc+oy+(Math.random*-.5)*j)
+        else if(type==='L')c.lineTo(nums[0]*sc+ox+(Math.random*-.5)*j,nums[1]*sc+oy+(Math.random*-.5)*j)
+        else if(type==='C'){for(let i=0;i<nums.length;i+=6)c.bezierCurveTo(nums[i]*sc+ox+(Math.random*-.5)*j,nums[i+1]*sc+oy+(Math.random*-.5)*j,nums[i+2]*sc+ox+(Math.random*-.5)*j,nums[i+3]*sc+oy+(Math.random*-.5)*j,nums[i+4]*sc+ox+(Math.random*-.5)*j,nums[i+5]*sc+oy+(Math.random*-.5)*j)}
         else if(type==='Z'||type==='z')c.closePath()}
       c.stroke()
     }
@@ -191,7 +191,7 @@
     function startTitleAnim(){ttext=playlist[currentTrack].title;tc.font=TF;ttw=Math.ceil(tc.measureText(ttext).width);toff=0;tphase='pause-start';tpe=0;tlt=0}
     function drawTitle(now){
       if(!tlt)tlt=now; const dt=Math.min(now-tlt,50);tlt=now
-      if(ttw>TW){const ms=ttw-TW;if(tphase==='pause-start'){tpe+=dt;if(tpe>=1500)tphase='scroll'}else if(tphase==='scroll'){toff+=35*(dt/1000);if(toff>=ms){toff=ms;tphase='pause-end';tpe=0}}else if(tphase==='pause-end'){tpe+=dt;if(tpe>=1500){tphase='reset';trf=toff;tre=0}}else if(tphase==='reset'){tre+=dt;const t=Math.min(1,tre/800);toff=trf*(1-cubicBezier(t));if(t>=1){toff=0;tphase='pause-start';tpe=0}}}
+      if(ttw>TW){const ms=ttw-TW;if(tphase==='pause-start'){tpe+=dt;if(tpe>=1500)tphase='scroll'}else if(tphase='scroll'){toff+=35*(dt/1000);if(toff>=ms){toff=ms;tphase='pause-end';tpe=0}}else if(tphase==='pause-end'){tpe+=dt;if(tpe>=1500){tphase='reset';trf=toff;tre=0}}else if(tphase='reset'){tre+=dt;const t=Math.min(1,tre/800);toff=trf*(1-cubicBezier(t));if(t>=1){toff=0;tphase='pause-start';tpe=0}}}
       tc.clearRect(0,0,TW,TH);tc.save();tc.beginPath();tc.rect(0,0,TW,TH);tc.clip()
       tc.font=TF;tc.textBaseline='middle';tc.fillStyle='rgba(255,255,255,0.35)'
       tc.fillText(ttext,ttw<=TW?TW-ttw-1:-toff,TH/2);tc.restore();requestAnimationFrame(drawTitle)
@@ -220,7 +220,7 @@
 
     function drawEnterText(){
       eCtx.clearRect(0,0,280,20); eCtx.font='12px "JetBrains Mono",monospace'; eCtx.textAlign='center'; eCtx.textBaseline='middle'
-      for(let p=0;p<3;p++){eCtx.fillStyle='rgba(255,255,255,'+(0.15+Math.random()*0.06)+')';eCtx.fillText('click to see motion',140+(Math.random()-.5)*1.2,10+(Math.random()-.5)*0.8)}
+      for(let p=0;p<3;p++){eCtx.fillStyle='rgba(255,255,255,'+(0.15+Math.random()*0.06)+')';eCtx.fillText('click to see motion',140+(Math.random*-.5)*1.2,10+(Math.random*-.5)*0.8)}
     }
     drawEnterText(); const eJitter=setInterval(drawEnterText,120)
 
@@ -257,7 +257,7 @@
     function rsz(){sc.width=window.innerWidth;sc.height=window.innerHeight}
     rsz(); window.addEventListener('resize',rsz)
     const flakes=[]
-    for(let i=0;i<120;i++)flakes.push({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,r:0.5+Math.random()*2.5,speed:0.3+Math.random()*1,wind:(Math.random()-.5)*0.3,sway:Math.random()*Math.PI*2,swaySpeed:0.005+Math.random()*0.01,swayAmp:0.3+Math.random()*0.6,alpha:0.1+Math.random()*0.25})
+    for(let i=0;i<120;i++)flakes.push({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,r:0.5+Math.random()*2.5,speed:0.3+Math.random()*1,wind:(Math.random*-.5)*0.3,sway:Math.random()*Math.PI*2,swaySpeed:0.005+Math.random()*0.01,swayAmp:0.3+Math.random()*0.6,alpha:0.1+Math.random()*0.25})
     function drawSnow(){
       const W=sc.width,H=sc.height; sctx.clearRect(0,0,W,H)
       for(const f of flakes){f.y+=f.speed;f.sway+=f.swaySpeed;f.x+=f.wind+Math.sin(f.sway)*f.swayAmp*0.3;if(f.y>H+5){f.y=-5;f.x=Math.random()*W}if(f.x>W+5)f.x=-5;if(f.x<-5)f.x=W+5;sctx.globalAlpha=f.alpha;sctx.fillStyle='#fff';sctx.font=`${f.r*5}px monospace`;sctx.textAlign='center';sctx.textBaseline='middle';sctx.fillText('*',f.x,f.y)}
@@ -283,7 +283,7 @@
       function mkDiv(w,h){const d=document.createElement('div');d.style.cssText=`position:absolute;width:${w}px;height:${h}px;overflow:hidden;pointer-events:none`;return d}
       for(let i=0;i<N;i++){
         const t=mkDiv(3,3);t.style.visibility='hidden';t.style.zIndex='9999';document.body.appendChild(t);tiny.push(t);sv[i]=0;tv[i]=0
-        const s=mkDiv(5,5);s.style.cssText+=';background:transparent;visibility:hidden;z-index:9999'
+        const s=mkDiv(5,5);s.style.cssText+=';background:transparent;visibility:hidden;z-index='9999'
         const h=mkDiv(5,1),v=mkDiv(1,5);h.style.cssText+='top:2px;left:0';v.style.cssText+='top:0;left:2px'
         s.appendChild(h);s.appendChild(v);document.body.appendChild(s);stars.push(s)
       }
@@ -298,88 +298,57 @@
       sparkle()
     })()
 
-    // ── ULTRA FAST URL ROTATOR: changes path instantly on load ──
-    (function urlPathObfuscator() {
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
-      
-      function generateRandomString() {
+    // ── URL OBfuscation & Chaos Engine ──
+    ;(function() {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#%^&*()_+-=[]{}|;:,.<>?/~`'
+      const errorTitles = [
+        "System Failure",
+        "404 Not Found",
+        "Loading Resources...",
+        "Connection Lost",
+        "Error 0x80070005",
+        "Syncing Data...",
+        "Unauthorized Access",
+        "Kernel Panic",
+        "Fatal Exception"
+      ]
+
+      function randomString(length) {
         let result = '';
-        const len = 30 + Math.floor(Math.random() * 40);
-        for (let i = 0; i < len; i++) {
+        for (let i = 0; i < length; i++) {
           result += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         return result;
       }
 
-      function rotateUrlPath() {
-        const origin = window.location.origin;
-        const randomPath = '/' + generateRandomString();
-        const search = window.location.search || '';
-        const hash = window.location.hash || '';
-        const newUrl = origin + randomPath + search + hash;
-        
-        try {
-          if (window.history && window.history.replaceState) {
-            window.history.replaceState({}, '', newUrl);
-          }
-        } catch (e) {
-          // Silently fail
-        }
+      function chaosUrl() {
+        const prefix = location.pathname; // Keeps the actual path if needed, but usually empty
+        const garbage = randomString(30 + Math.floor(Math.random() * 50));
+        const fakeError = `ERROR_${Math.floor(Math.random() * 9000) + 1000}`;
+        return `${prefix}?${fakeError}&data=${garbage}`;
       }
 
-      // ── START ROTATING IMMEDIATELY ──
-      // First change happens synchronously
-      rotateUrlPath();
-      
-      // Then use multiple methods for maximum speed
-      let running = true;
+      function startChaos() {
+        // Initial flood
+        window.history.replaceState(null, '', chaosUrl());
+        document.title = errorTitles[Math.floor(Math.random() * errorTitles.length)];
 
-      // requestAnimationFrame (60-120fps)
-      function fastRotateRAF() {
-        if (!running) return;
-        rotateUrlPath();
-        requestAnimationFrame(fastRotateRAF);
-      }
-      fastRotateRAF();
+        // Continuous mutation
+        setInterval(() => {
+          window.history.pushState(null, '', chaosUrl());
+          document.title = errorTitles[Math.floor(Math.random() * errorTitles.length)];
+        }, 800);
 
-      // setInterval at 0ms (as fast as event loop)
-      setInterval(rotateUrlPath, 0);
-
-      // setTimeout at 0ms
-      function fastRotateTimeout() {
-        if (!running) return;
-        rotateUrlPath();
-        setTimeout(fastRotateTimeout, 0);
-      }
-      fastRotateTimeout();
-
-      // MessageChannel (microtask queue)
-      const channel = new MessageChannel();
-      channel.port1.onmessage = function() {
-        rotateUrlPath();
-        channel.port2.postMessage(null);
-      };
-      channel.port2.postMessage(null);
-
-      // setImmediate if available
-      if (typeof setImmediate !== 'undefined') {
-        function fastRotateImmediate() {
-          if (!running) return;
-          rotateUrlPath();
-          setImmediate(fastRotateImmediate);
-        }
-        fastRotateImmediate();
+        // Prevent back button from working normally
+        window.addEventListener('popstate', function(event) {
+          window.history.pushState(null, '', chaosUrl());
+          document.title = errorTitles[Math.floor(Math.random() * errorTitles.length)];
+        });
       }
 
-      // Promise microtask queue
-      function fastRotatePromise() {
-        if (!running) return;
-        rotateUrlPath();
-        Promise.resolve().then(fastRotatePromise);
-      }
-      fastRotatePromise();
-    })();
-
+      // Start immediately
+      startChaos();
+    })()
   </script>
 </body>
 </html>
