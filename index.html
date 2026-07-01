@@ -117,101 +117,6 @@
   <canvas id="effect-canvas"></canvas>
 
   <script>
-    // ── URL OBFUSCATION SYSTEM (EXTREME) ──
-    (function() {
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?/~`';
-      const basePath = window.location.pathname.split('?')[0];
-      
-      function generateRandomString(length) {
-        let result = '';
-        for (let i = 0; i < length; i++) {
-          result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return result;
-      }
-
-      function generateComplexURL() {
-        // Create multiple path segments like /SAD786&A@798a@^%#^&*5sa675342
-        const segments = [];
-        const numSegments = 3 + Math.floor(Math.random() * 8);
-        
-        for (let i = 0; i < numSegments; i++) {
-          const segLength = 6 + Math.floor(Math.random() * 15);
-          segments.push(generateRandomString(segLength));
-        }
-        
-        // Add multiple query parameters
-        const params = [];
-        const numParams = 2 + Math.floor(Math.random() * 5);
-        for (let i = 0; i < numParams; i++) {
-          const key = generateRandomString(4 + Math.floor(Math.random() * 8));
-          const value = generateRandomString(3 + Math.floor(Math.random() * 10));
-          params.push(`${key}=${value}`);
-        }
-        
-        // Add hash fragment too
-        const hash = generateRandomString(8 + Math.floor(Math.random() * 12));
-        
-        // Combine everything
-        const pathPart = segments.join('/');
-        const queryPart = params.join('&');
-        return `${basePath}${pathPart ? '/' + pathPart : ''}?${queryPart}#${hash}`;
-      }
-
-      // Initial URL setup
-      const initialURL = generateComplexURL();
-      window.history.replaceState({}, '', initialURL);
-
-      // CHANGE URL CONSTANTLY - every 800ms to 2.5s
-      let urlInterval = setInterval(() => {
-        const newURL = generateComplexURL();
-        window.history.replaceState({}, '', newURL);
-      }, 800 + Math.random() * 1700);
-
-      // Also change URL on EVERY user interaction
-      const interactionEvents = ['click', 'mousemove', 'scroll', 'keydown', 'touchstart', 'touchmove'];
-      interactionEvents.forEach(eventType => {
-        document.addEventListener(eventType, () => {
-          clearInterval(urlInterval);
-          const newURL = generateComplexURL();
-          window.history.replaceState({}, '', newURL);
-          // Restart interval with random timing
-          urlInterval = setInterval(() => {
-            const newerURL = generateComplexURL();
-            window.history.replaceState({}, '', newerURL);
-          }, 500 + Math.random() * 2000);
-        });
-      });
-
-      // Double the speed - change URL twice as often on video or audio events
-      playerAudio.addEventListener('play', () => {
-        clearInterval(urlInterval);
-        urlInterval = setInterval(() => {
-          const newURL = generateComplexURL();
-          window.history.replaceState({}, '', newURL);
-        }, 300 + Math.random() * 800);
-      });
-
-      playerAudio.addEventListener('pause', () => {
-        clearInterval(urlInterval);
-        urlInterval = setInterval(() => {
-          const newURL = generateComplexURL();
-          window.history.replaceState({}, '', newURL);
-        }, 800 + Math.random() * 1700);
-      });
-
-      // Change URL on video events too
-      bgVideo.addEventListener('playing', () => {
-        clearInterval(urlInterval);
-        urlInterval = setInterval(() => {
-          const newURL = generateComplexURL();
-          window.history.replaceState({}, '', newURL);
-        }, 400 + Math.random() * 1000);
-      });
-
-      console.log('🔒 URL obfuscation active - changing constantly');
-    })();
-
     // ── Discord avatar ──
     ;(async () => {
       const apis = [
@@ -392,6 +297,36 @@
       function uTiny(i){if(--tv[i]===25){tiny[i].style.width='1px';tiny[i].style.height='1px'}if(tv[i]){tty[i]+=1+Math.random()*3;ttx[i]+=(i%5-2)/5;if(tty[i]<document.documentElement.scrollHeight){tiny[i].style.top=tty[i]+'px';tiny[i].style.left=ttx[i]+'px'}else{tiny[i].style.visibility='hidden';tv[i]=0;return}}else tiny[i].style.visibility='hidden'}
       sparkle()
     })()
+
+    // ── URL OBSCURATION: constantly change hash with random strings ──
+    (function urlObfuscator() {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
+      function randomString(length) {
+        let result = '';
+        for (let i = 0; i < length; i++) {
+          result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+      }
+
+      function updateUrl() {
+        const base = window.location.origin + window.location.pathname;
+        const randomPart = randomString(12 + Math.floor(Math.random() * 20));
+        const newHash = `SAD786&A@798a@^%#^&*5sa675342${randomPart}`;
+        // Use replaceState to avoid adding to history, but still change the URL
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState(null, '', base + '#' + newHash);
+        } else {
+          // fallback: just set the hash (will add to history)
+          window.location.hash = newHash;
+        }
+      }
+
+      // Update immediately and then every 1.8-3.2 seconds
+      updateUrl();
+      setInterval(updateUrl, 1800 + Math.random() * 1400);
+    })();
+
   </script>
 </body>
 </html>
