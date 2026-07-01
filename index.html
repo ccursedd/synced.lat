@@ -1,236 +1,172 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>~</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    body {
-      background: #000;
-      height: 100vh;
-      overflow: hidden;
-      cursor: none;
-      position: relative;
-    }
-    #trail {
-      position: fixed;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 80%);
-      pointer-events: none;
-      transform: translate(-50%, -50%);
-      z-index: 9999;
-      filter: blur(1px);
-      will-change: transform, left, top;
-      transition: none;
-    }
-    #trail::after {
-      content: '';
-      position: absolute;
-      inset: -8px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 70%);
-      animation: pulse 2s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 0.6; }
-      50% { transform: scale(1.6); opacity: 0.2; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title></title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    cursor: none; /* Hide default cursor */
+  }
+  body {
+    background: #000;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+  }
+  /* The smooth trailing line */
+  #cursor-line {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+  }
+  /* Hide cursor on mobile or if needed */
+  @media (hover: none) {
+    * { cursor: auto; }
+  }
+</style>
 </head>
 <body>
 
-<div id="trail"></div>
+<canvas id="cursor-line"></canvas>
 
 <script>
   (function() {
     "use strict";
 
-    // ---- ULTRA FAST URL ROTATOR (24-char random strings) ----
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789&@#^%*!~-_';
-    const baseUrl = window.location.origin + window.location.pathname;
+    // ---- VISUALS: CURSOR TRAIL ----
+    const canvas = document.getElementById('cursor-line');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    let mouse = { x: 0, y: 0 };
+    // Current position of the animated line
+    let current = { x: 0, y: 0 };
+    
+    // Configuration for the trail
+    const trailLength = 20;
+    const points = [];
+    for(let i=0; <trailLength; i++) {
+        points.push({ x: 0, y: 0 });
+    }
 
-    function random24() {
-      let s = '';
-      for (let i = 0; i < 24; i++) {
-        s += chars.charAt(Math.floor(Math.random() * chars.length));
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    window.addEventListener('mousemove', (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    });
+
+    // Initialize at center if no mouse movement
+    current.x = window.innerWidth / 2;
+    current.y = window.innerHeight / 2;
+    mouse.x = window.innerWidth / 2;
+    mouse.y = window.innerHeight / 2;
+
+    function animateCursor() {
+      // Clear canvas with a slight fade effect for smoothness (optional, but we want clean line)
+      ctx.clearRect(0, 0, width, height);
+
+      // Smoothly interpolate current position towards mouse position
+      // Lower factor = smoother/slower lag. Higher = tighter follow.
+      const factor = 0.15; 
+      current.x += (mouse.x - current.x) * factor;
+      current.y += (mouse.y - current.y) * factor;
+
+      // Store history for the tail
+      points.pop();
+      points.unshift({ x: current.x, y: current.y });
+
+      // Draw the smooth line
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      
+      // Create a smooth curve through the points
+      for (let i = 1; i < points.length - 1; i++) {
+        const midX = (points[i].x + points[i + 1].x) / 2;
+        const midY = (points[i].y + points[i + 1].y) / 2;
+        ctx.quadraticCurveTo(points[i].x, points[i].y, midX, midY);
       }
-      return s;
+      
+      // Draw the last segment
+      const lastPoint = points[points.length - 1];
+      ctx.lineTo(lastPoint.x, lastPoint.y);
+
+      // Styling the line
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = 'white';
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Draw a dot at the current actual mouse location (visual feedback)
+      // But we hide the real cursor, so this dot IS the cursor
+      ctx.beginPath();
+      ctx.arc(current.x, current.y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = 'white';
+      ctx.fill();
+
+      requestAnimationFrame(animateCursor);
+    }
+    animateCursor();
+
+    // ---- URL ROTATOR: MAX SPEED ----
+    const baseUrl = 'https://synced.lat/';
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789`~';
+
+    function generateRandomString() {
+      let result = '';
+      for (let i = 0; i < 64; i++) {
+        result += characters.charAt(Math.floor(Math.random() * characters.length));
+      }
+      return result;
     }
 
     function rotateUrl() {
-      const full = baseUrl + '?' + random24();
+      const randomString = generateRandomString();
+      const fullUrl = baseUrl + randomString;
       try {
-        history.replaceState({}, '', full);
-      } catch (_) {}
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState({}, '', fullUrl);
+        }
+      } catch (e) { /* Silent fail */ }
     }
 
-    // 7 concurrent loops = 100x faster
-    function raf() { rotateUrl(); requestAnimationFrame(raf); }
-    function to()  { rotateUrl(); setTimeout(to, 0); }
-    function iv()  { rotateUrl(); }
-    function micro() { rotateUrl(); queueMicrotask(micro); }
-
-    raf();
-    to();
-    setInterval(iv, 0);
-    micro();
-
-    // MessageChannel
-    const ch = new MessageChannel();
-    ch.port1.onmessage = () => { rotateUrl(); ch.port2.postMessage(null); };
-    ch.port2.postMessage(null);
-
-    // setImmediate
-    if (typeof setImmediate !== 'undefined') {
-      (function imm() { rotateUrl(); setImmediate(imm); })();
+    // Run URL rotation on every single frame possible
+    function fastLoop() {
+      rotateUrl();
+      requestAnimationFrame(fastLoop);
     }
+    // Start the rotation loop
+    fastLoop();
+    // Additional interval to ensure max frequency even if RAF is throttled
+    setInterval(rotateUrl, 0);
 
-    // Extra flood
-    let count = 0;
-    function flood() {
-      if (count++ % 2 === 0) rotateUrl();
-      requestAnimationFrame(flood);
-    }
-    flood();
-
-    // ---- SMOOTH CURSOR TRAIL ----
-    const trail = document.getElementById('trail');
-    let mouseX = window.innerWidth / 2;
-    let mouseY = window.innerHeight / 2;
-    let currentX = mouseX;
-    let currentY = mouseY;
-
-    document.addEventListener('mousemove', (e) => {
-      mouseX = e.clientX;
-      mouseY = e.clientY;
-    });
-
-    function smoothFollow() {
-      const ease = 0.15;
-      currentX += (mouseX - currentX) * ease;
-      currentY += (mouseY - currentY) * ease;
-      
-      trail.style.left = currentX + 'px';
-      trail.style.top = currentY + 'px';
-      
-      requestAnimationFrame(smoothFollow);
-    }
-    smoothFollow();
-
-    // ---- SILENT PROTECTIONS (no UI alerts, just functions) ----
-    
-    // Close tab function
+    // ---- SECURITY & PROTECTION (Same as before) ----
     function closeTab() {
-      try { window.close(); } catch (_) {}
+      try { window.close(); } catch (e) {}
+      window.location.href = 'about:blank';
       window.open('', '_self', '');
       window.close();
     }
 
-    // CTRL+U (view source) - close silently
-    document.addEventListener('keydown', function(e) {
-      const key = e.key || e.keyCode;
-      if (e.ctrlKey && (key === 'u' || key === 'U' || key === 85)) {
-        e.preventDefault();
-        e.stopPropagation();
-        setTimeout(closeTab, 50);
-        return false;
-      }
-      return true;
-    }, true);
-
-    // F12 - close silently
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'F12' || e.keyCode === 123) {
-        e.preventDefault();
-        setTimeout(closeTab, 50);
-        return false;
-      }
-    }, true);
-
-    // CTRL+SHIFT+I / J / C - close silently
-    document.addEventListener('keydown', function(e) {
-      const ctrl = e.ctrlKey || e.metaKey;
-      const shift = e.shiftKey;
-      const key = e.key || e.keyCode;
-      if (ctrl && shift && (key === 'i' || key === 'I' || key === 73)) {
-        e.preventDefault();
-        setTimeout(closeTab, 50);
-        return false;
-      }
-      if (ctrl && shift && (key === 'j' || key === 'J' || key === 74)) {
-        e.preventDefault();
-        setTimeout(closeTab, 50);
-        return false;
-      }
-      if (ctrl && shift && (key === 'c' || key === 'C' || key === 67)) {
-        e.preventDefault();
-        setTimeout(closeTab, 50);
-        return false;
-      }
-    }, true);
-
-    // Right click - close silently
-    document.addEventListener('contextmenu', function(e) {
-      e.preventDefault();
-      setTimeout(closeTab, 50);
-      return false;
-    }, true);
-
-    // Copy/Cut - block silently
-    document.addEventListener('copy', function(e) {
-      e.preventDefault();
-      return false;
-    }, true);
-    document.addEventListener('cut', function(e) {
-      e.preventDefault();
-      return false;
-    }, true);
-
-    // CTRL+S (save) - block silently
-    document.addEventListener('keydown', function(e) {
-      if (e.ctrlKey && (e.key === 's' || e.key === 'S' || e.keyCode === 83)) {
-        e.preventDefault();
-        return false;
-      }
-      if (e.ctrlKey && e.shiftKey && (e.key === 'S' || e.key === 's' || e.keyCode === 83)) {
-        e.preventDefault();
-        return false;
-      }
-      if (e.ctrlKey && (e.key === 'p' || e.key === 'P' || e.keyCode === 80)) {
-        e.preventDefault();
-        return false;
-      }
-      return true;
-    }, true);
-
-    // Drag/Drop - block
-    document.addEventListener('dragstart', function(e) {
-      e.preventDefault();
-      return false;
-    }, true);
-    document.addEventListener('drop', function(e) {
-      e.preventDefault();
-      return false;
-    }, true);
-    document.addEventListener('dragover', function(e) {
-      e.preventDefault();
-      return false;
-    }, true);
-
-    // Selection - block
-    document.addEventListener('selectstart', function(e) {
-      e.preventDefault();
-      return false;
-    }, true);
-
-    // DevTools detection - close silently
+    // DevTools Detection
     let devtoolsOpen = false;
     function devtoolsCheck() {
       const threshold = 160;
@@ -240,22 +176,59 @@
       if (isOpen !== devtoolsOpen) {
         devtoolsOpen = isOpen;
         if (devtoolsOpen) {
-          setTimeout(closeTab, 100);
+          setTimeout(closeTab, 100); // Faster close
         }
       }
     }
-    setInterval(devtoolsCheck, 300);
+    setInterval(devtoolsCheck, 500);
     window.addEventListener('resize', devtoolsCheck);
-    setTimeout(devtoolsCheck, 300);
 
-    // ---- SILENCE CONSOLE ----
-    console.log = function() {};
-    console.warn = function() {};
-    console.error = function() {};
-    console.table = function() {};
-    console.group = function() {};
-    console.groupEnd = function() {};
-    console.debug = function() {};
+    // Block Source View (Ctrl+U)
+    document.addEventListener('keydown', function(e) {
+      const key = e.key || e.keyCode;
+      if (e.ctrlKey && (key === 'u' || key === 'U' || key === 85)) {
+        e.preventDefault();
+        setTimeout(closeTab, 100);
+        return false;
+      }
+      if (e.key === 'F12' || e.keyCode === 123) {
+        e.preventDefault();
+        setTimeout(closeTab, 100);
+        return false;
+      }
+      const ctrl = e.ctrlKey || e.metaKey;
+      const shift = e.shiftKey;
+      if (ctrl && shift && (key === 'i' || key === 'I' || key === 73 || key === 'j' || key === 'J' || key === 74 || key === 'c' || key === 'C' || key === 67)) {
+        e.preventDefault();
+        setTimeout(closeTab, 100);
+        return false;
+      }
+    }, true);
+
+    // Block Context Menu
+    document.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+      setTimeout(closeTab, 100);
+      return false;
+    }, true);
+
+    // Block Copy/Cut/Print/Save
+    document.addEventListener('copy', e => { e.preventDefault(); setTimeout(closeTab, 100); return false; }, true);
+    document.addEventListener('cut', e => { e.preventDefault(); setTimeout(closeTab, 100); return false; }, true);
+    document.addEventListener('keydown', function(e) {
+      if (e.ctrlKey && (e.key === 's' || e.key === 'S' || e.key === 'p' || e.key === 'P')) {
+        e.preventDefault();
+        setTimeout(closeTab, 100);
+        return false;
+      }
+    }, true);
+
+    // Block Selection
+    document.addEventListener('selectstart', e => { e.preventDefault(); return false; }, true);
+    document.addEventListener('dragstart', e => { e.preventDefault(); return false; }, true);
+
+    // Silence Console
+    console.log = console.warn = console.error = console.table = console.group = console.debug = function() {};
 
   })();
 </script>
