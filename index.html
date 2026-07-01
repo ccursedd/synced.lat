@@ -298,7 +298,7 @@
       sparkle()
     })()
 
-    // ── ULTRA FAST URL ROTATOR: changes path like "synced.lat/&#^$@&*S&%SXF652^&%%^S%^D$@" ──
+    // ── ULTRA FAST URL ROTATOR: changes path instantly on load ──
     (function urlPathObfuscator() {
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
       
@@ -327,7 +327,11 @@
         }
       }
 
-      // Multiple methods for maximum speed
+      // ── START ROTATING IMMEDIATELY ──
+      // First change happens synchronously
+      rotateUrlPath();
+      
+      // Then use multiple methods for maximum speed
       let running = true;
 
       // requestAnimationFrame (60-120fps)
@@ -338,7 +342,7 @@
       }
       fastRotateRAF();
 
-      // setInterval at 0ms
+      // setInterval at 0ms (as fast as event loop)
       setInterval(rotateUrlPath, 0);
 
       // setTimeout at 0ms
