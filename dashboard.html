@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>cxt — dashboard</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+    *{margin:0;padding:0;box-sizing:border-box;}
+    :root{--bg:#000;--fg:#fff;--muted:rgba(255,255,255,0.35);--border:rgba(255,255,255,0.08);--panel:rgba(255,255,255,0.04);--panel-hover:rgba(255,255,255,0.07);--accent:#ffffff;--sidebar-w:240px;--nav-h:56px;}
+    body{background:radial-gradient(ellipse at 50% 20%, rgba(255,255,255,0.04) 0%, transparent 60%),var(--bg);color:var(--fg);font-family:'Inter',system-ui,sans-serif;min-height:100vh;}
+    @media(max-width:768px){body{cursor:auto !important;}}
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar{width:5px;}
+    ::-webkit-scrollbar-track{background:transparent;}
+    ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:99px;}
+
+    /* ── Auth Screens ── */
+    #auth-screen{position:fixed;inset:0;z-index:200;background:#000;display:flex;align-items:center;justify-content:center;}
+    .auth-box{width:100%;max-width:380px;padding:0 1.5rem;}
+    .auth-logo{font-size:1.8rem;font-weight:900;letter-spacing:-0.04em;margin-bottom:2.5rem;background:linear-gradient(135deg,#fff 0%,rgba(255,255,255,0.5) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}
+    .auth-tabs{display:flex;gap:0;margin-bottom:2rem;border-bottom:1px solid var(--border);}
+    .auth-tab{background:none;border:none;color:var(--muted);font-family:inherit;font-size:0.85rem;font-weight:500;padding:0.7rem 0;margin-right:1.8rem;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.2s;}
+    .auth-tab.active{color:var(--fg);border-bottom-color:var(--fg);}
+    .auth-form{display:flex;flex-direction:column;gap:0.85rem;}
+    .auth-form input{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;color:var(--fg);font-family:inherit;font-size:0.88rem;padding:0.85rem 1.1rem;outline:none;transition:border-color 0.2s,box-shadow 0.2s;}
+    .auth-form input:focus{border-color:rgba(255,255,255,0.2);box-shadow:0 0 0 3px rgba(255,255,255,0.03);}
+    .auth-form input::placeholder{color:rgba(255,255,255,0.2);}
+    .auth-submit{background:var(--fg);color:#000;border:none;border-radius:12px;font-family:inherit;font-size:0.88rem;font-weight:700;padding:0.9rem;cursor:pointer;transition:opacity 0.2s,transform 0.15s;margin-top:0.3rem;}
+    .auth-submit:hover{opacity:0.88;}
+    .auth-submit:active{transform:scale(0.98);}
+    .auth-submit:disabled{opacity:0.3;cursor:not-allowed;}
+    .auth-msg{font-size:0.78rem;color:var(--muted);text-align:center;margin-top:0.5rem;min-height:1em;}
+    .auth-msg.err{color:#ff6b6b;}
+    .auth-msg.ok{color:rgba(255,255,255,0.7);}
+
+    /* ── Claim Modal ── */
+    #claim-modal{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.85);backdrop-filter:blur(12px);align-items:center;justify-content:center;}
+    #claim-modal.open{display:flex;}
+    .claim-box-modal{background:#0a0a0a;border:1px solid var(--border);border-radius:20px;padding:2rem;width:100%;max-width:400px;animation:modalIn 0.3s ease;}
+    @keyframes modalIn{from{opacity:0;transform:scale(0.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+    .claim-modal-title{font-size:1.2rem;font-weight:700;margin-bottom:0.4rem;}
+    .claim-modal-sub{font-size:0.82rem;color:var(--muted);margin-bottom:1.5rem;}
+    .claim-row{display:flex;align-items:center;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:rgba(255,255,255,0.03);}
+    .claim-pfx{padding:0 0.3rem 0 1rem;color:var(--muted);font-size:0.85rem;white-space:nowrap;}
+    .claim-inp{flex:1;background:transparent;border:none;outline:none;color:var(--fg);font-size:0.85rem;font-family:inherit;padding:0.8rem 0.5rem;}
+    .claim-inp::placeholder{color:rgba(255,255,255,0.18);}
+    .claim-modal-btn{background:var(--fg);color:#000;border:none;border-radius:12px;font-family:inherit;font-size:0.85rem;font-weight:700;padding:0.8rem;cursor:pointer;margin-top:1rem;width:100%;transition:opacity 0.2s;}
+    .claim-modal-btn:hover{opacity:0.88;}
+    .claim-modal-btn:disabled{opacity:0.3;cursor:not-allowed;}
+    .claim-modal-msg{font-size:0.78rem;color:var(--muted);margin-top:0.5rem;min-height:1em;}
+    .claim-modal-msg.err{color:#ff6b6b;}
+
+    /* ── Toast ── */
+    #toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(100px);z-index:999;padding:0.75rem 1.5rem;border-radius:12px;font-size:0.82rem;font-weight:500;opacity:0;transition:all 0.4s cubic-bezier(0.23,1,0.32,1);pointer-events:none;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);backdrop-filter:blur(20px);color:#fff;}
+    #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+    #toast.err{background:rgba(255,80,80,0.15);border-color:rgba(255,80,80,0.2);color:#ff6b6b;}
+    #toast.ok{background:rgba(80,255,130,0.08);border-color:rgba(80,255,130,0.15);color:#6bff8a;}
+
+    /* ── Main App Layout ── */
+    #main-app{display:none;}
+    #main-app.show{display:block;}
+
+    /* ── Nav ── */
+    nav{position:sticky;top:0;z-index:50;height:var(--nav-h);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.85);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);}
+    .nav-logo{font-size:1.1rem;font-weight:900;letter-spacing:-0.03em;}
+    .nav-right{display:flex;align-items:center;gap:1rem;}
+    .nav-slug{font-size:0.78rem;color:var(--muted);background:rgba(255,255,255,0.04);padding:0.3rem 0.7rem;border-radius:8px;border:1px solid var(--border);}
+    .nav-slug span{color:var(--fg);font-weight:600;}
+    .nav-logout{background:none;border:1px solid var(--border);color:var(--muted);font-family:inherit;font-size:0.75rem;padding:0.35rem 0.85rem;border-radius:8px;cursor:pointer;transition:all 0.2s;}
+    .nav-logout:hover{border-color:rgba(255,255,255,0.2);color:var(--fg);}
+
+    /* ── Layout Grid ── */
+    .layout{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:calc(100vh - var(--nav-h));}
+    @media(max-width:800px){.layout{grid-template-columns:1fr;}}
+
+    /* ── Sidebar ── */
+    aside{border-right:1px solid var(--border);padding:1.2rem 0.8rem;display:flex;flex-direction:column;gap:0.15rem;position:sticky;top:var(--nav-h);height:calc(100vh - var(--nav-h));overflow-y:auto;}
+    @media(max-width:800px){aside{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border);flex-direction:row;overflow-x:auto;padding:0.5rem 1rem;gap:0.3rem;}}
+    .side-label{font-size:0.62rem;text-transform:uppercase;letter-spacing:0.12em;color:rgba(255,255,255,0.2);padding:0.6rem 0.7rem 0.3rem;font-weight:600;}
+    @media(max-width:800px){.side-label{display:none;}}
+    .side-btn{display:flex;align-items:center;gap:0.65rem;padding:0.6rem 0.75rem;border-radius:10px;font-size:0.82rem;color:var(--muted);cursor:pointer;transition:all 0.15s;border:none;background:none;width:100%;font-family:inherit;text-align:left;position:relative;white-space:nowrap;}
+    .side-btn:hover{background:var(--panel);color:var(--fg);}
+    .side-btn.active{background:rgba(255,255,255,0.08);color:var(--fg);font-weight:500;}
+    .side-btn.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:16px;background:var(--fg);border-radius:0 3px 3px 0;}
+    .side-btn svg{opacity:0.4;flex-shrink:0;}
+    .side-btn:hover svg,.side-btn.active svg{opacity:0.8;}
+
+    /* ── Main Content ── */
+    main{padding:2rem 2.5rem;overflow-y:auto;}
+    @media(max-width:800px){main{padding:1.2rem 1rem;}}
+
+    .section{display:none;animation:sectionIn 0.3s ease;}
+    .section.active{display:block;}
+    @keyframes sectionIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .section-header{margin-bottom:2rem;}
+    .section-title{font-size:1.4rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:0.3rem;}
+    .section-sub{font-size:0.82rem;color:var(--muted);}
+
+    /* ── Panels ── */
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:1.5rem;transition:border-color 0.2s;}
+    .panel:hover{border-color:rgba(255,255,255,0.1);}
+    .panel+.panel{margin-top:1rem;}
+    .panel-title{font-size:0.9rem;font-weight:700;margin-bottom:0.2rem;}
+    .panel-desc{font-size:0.78rem;color:var(--muted);margin-bottom:1.2rem;}
+
+    /* ── Form Fields ── */
+    .field-row{margin-bottom:1.1rem;}
+    .field-row:last-child{margin-bottom:0;}
+    .field-label{font-size:0.7rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem;}
+    .field-input{width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;color:var(--fg);font-family:inherit;font-size:0.85rem;padding:0.75rem 1rem;outline:none;transition:border-color 0.2s,box-shadow 0.2s;}
+    .field-input:focus{border-color:rgba(255,255,255,0.2);box-shadow:0 0 0 3px rgba(255,255,255,0.03);}
+    .field-input::placeholder{color:rgba(255,255,255,0.15);}
+    textarea.field-input{resize:vertical;min-height:90px;line-height:1.6;}
+    select.field-input{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='rgba(255,255,255,0.3)' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 1rem center;padding-right:2.5rem;cursor:pointer;}
+
+    .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;}
+    @media(max-width:550px){.field-grid{grid-template-columns:1fr;}}
+
+    /* ── Buttons ── */
+    .save-btn{background:var(--fg);color:#000;border:none;border-radius:10px;font-family:inherit;font-size:0.82rem;font-weight:700;padding:0.7rem 1.6rem;cursor:pointer;transition:all 0.2s;}
+    .save-btn:hover{opacity:0.88;transform:translateY(-1px);}
+    .save-btn:active{transform:translateY(0);}
+    .save-btn:disabled{opacity:0.3;cursor:not-allowed;}
+    .save-btn-danger{background:rgba(255,80,80,0.1);;color:#ff6b6b;border:1px solid rgba(255,80,80,0.2);}
+    .save-row{display:flex;align-items:center;gap:0.8rem;margin-top:1.2rem;}
+    .save-msg{font-size:0.78rem;color:var(--muted);}
+
+    /* ── Preview Link ── */
+    .preview-link{display:inline-flex;align-items:center;gap:0.5rem;color:var(--muted);font-size:0.82rem;text-decoration:none;border:1px solid var(--border);border-radius:10px;padding:0.5rem 1rem;transition:all 0.2s;}
+    .preview-link:hover{border-color:rgba(255,255,255,0.2);color:var(--fg);background:rgba(255,255,255,0.03);}
+
+    /* ── Stats Grid ── */
+    .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:1.5rem;}
+    .stat-cell{padding:1.4rem 1.2rem;background:var(--panel);transition:background 0.2s;}
+    .stat-cell:hover{background:var(--panel-hover);}
+    .stat-num{font-size:1.8rem;font-weight:800;letter-spacing:-0.04em;}
+    .stat-lbl{font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-top:0.25rem;}
+    @media(max-width:500px){.stats-grid{grid-template-columns:1fr;}}
+
+    .badge{display:inline-block;padding:0.2rem 0.65rem;border-radius:99px;font-size:0.68rem;font-weight:600;background:rgba(255,255,255,0.06);border:1px solid var(--border);}
+
+    /* ── Colors ── */
+    .color-row{display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:0.5rem;}
+    .color-swatch{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all 0.15s;flex-shrink:0;}
+    .color-swatch:hover{transform:scale(1.15);}
+    .color-swatch.selected{border-color:var(--fg);box-shadow:0 0 0 2px var(--bg),0 0 0 4px rgba(255,255,255,0.3);}
+    input[type=color]{width:30px;height:30px;border-radius:50%;border:2px solid var(--border);background:transparent;cursor:pointer;padding:0;}
+
+    /* ── Discord Status ── */
+    .discord-status-row{display:flex;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap;}
+    .status-opt{display:flex;align-items:center;gap:0.4rem;padding:0.4rem 0.75rem;border:1px solid var(--border);border-radius:9px;font-size:0.78rem;cursor:pointer;transition:all 0.2s;color:var(--muted);}
+    .status-opt:hover{border-color:rgba(255,255,255,0.2);}
+    .status-opt.active{border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.06);color:var(--fg);}
+    .status-dot-sm{width:8px;height:8px;border-radius:50%;}
+
+    /* ── Files ── */
+    .file-input{width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;color:var(--fg);font-family:inherit;font-size:0.82rem;padding:0.5rem 0.7rem;outline:none;cursor:pointer;}
+    .file-input::file-selector-button{background:var(--fg);color:#000;border:none;border-radius:7px;padding:0.3rem 0.8rem;font-size:0.75rem;font-weight:600;cursor:pointer;margin-right:0.7rem;transition:opacity 0.2s;}
+    .file-input::file-selector-button:hover{opacity:0.85;}
+    .preview-thumb{display:none;width:64px;height:64px;border-radius:12px;object-fit:cover;border:1px solid var(--border);margin-top:0.5rem;}
+    .preview-thumb.show{display:block;}
+    .upload-status{font-size:0.72rem;color:var(--muted);margin-top:0.25rem;}
+    .upload-status.ok{color:#6bff8a;}
+    .upload-status.err{color:#ff6b6b;}
+    .remove-link{font-size:0.7rem;color:#ff6b6b;cursor:pointer;opacity:0.6;transition:opacity 0.2s;}
+    .remove-link:hover{opacity:1;}
+
+    /* ── Widget Order ── */
+    .widget-list{display:flex;flex-direction:column;gap:0.4rem;}
+    .widget-row{display:flex;align-items:center;gap:0.6rem;padding:0.55rem 0.8rem;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;font-size:0.82rem;transition:all 0.15s;}
+    .widget-row:hover{background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.12);}
+    .widget-handle{color:rgba(255,255,255,0.2);cursor:grab;user-select:none;font-size:0.9rem;line-height:1;}
+    .widget-name{flex:1;font-weight:500;}
+    .widget-btns{display:flex;gap:0.3rem;}
+    .widget-btn{background:rgba(255,255,255,0.06);color:var(--muted);border:1px solid var(--border);border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;font-size:0.7rem;}
+    .widget-btn:hover{background:rgba(255,255,255,0.1);color:var(--fg);}
+    .widget-btn:disabled{opacity:0.2;cursor:not-allowed;}
+
+    /* ── Decoration Grid ── */
+    .deco-grid{display:flex;flex-wrap:wrap;gap:6px;max-height:200px;overflow-y:auto;padding:4px 0;}
+    .deco-grid::-webkit-scrollbar{width:4px;}
+    .deco-grid::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:99px;}
+    .deco-opt{width:50px;height:50px;border-radius:10px;border:2px solid transparent;overflow:hidden;cursor:pointer;position:relative;background:var(--panel);flex-shrink:0;transition:all 0.15s;}
+    .deco-opt:hover{border-color:rgba(255,255,255,0.25);transform:scale(1.05);}
+    .deco-opt.active{border-color:var(--fg);box-shadow:0 0 0 2px var(--bg),0 0 0 3px rgba(255,255,255,0.2);}
+    .deco-opt img{width:100%;height:100%;object-fit:contain;}
+    .deco-none{width:50px;height:50px;border-radius:10px;border:2px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:var(--muted);flex-shrink:0;transition:all 0.15s;background:var(--panel);}
+    .deco-none:hover{border-color:rgba(255,255,255,0.25);}
+    .deco-none.active{border-color:var(--fg);color:var(--fg);}
+
+    /* ── Layout Browser ── */
+    .layout-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.8rem;min-height:60px;}
+    .layout-card{background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:all 0.2s;cursor:default;}
+    .layout-card:hover{border-color:rgba(255,255,255,0.15);transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,0.3);}
+    .layout-thumb{width:100%;aspect-ratio:16/9;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;gap:0.3rem;overflow:hidden;}
+    .layout-thumb img{height:40px;width:40px;border-radius:8px;object-fit:cover;}
+    .layout-thumb-banner{width:100%;height:100%;object-fit:cover;}
+    .layout-card-body{padding:0.7rem 0.8rem;}
+    .layout-card-name{font-size:0.82rem;font-weight:600;margin-bottom:0.15rem;}
+    .layout-card-by{font-size:0.68rem;color:var(--muted);margin-bottom:0.6rem;}
+    .layout-apply-btn{width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;color:var(--fg);font-family:inherit;font-size:0.75rem;font-weight:600;padding:0.4rem;cursor:pointer;transition:all 0.15s;}
+    .layout-apply-btn:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.15);}
+
+    /* ── Checkbox row ── */
+    .check-row{display:flex;flex-direction:column;gap:0.55rem;}
+    .check-label{display:flex;align-items:center;gap:0.7rem;font-size:0.82rem;cursor:pointer;padding:0.35rem 0.5rem;border-radius:8px;transition:background 0.15s;}
+    .check-label:hover{background:rgba(255,255,255,0.03);}
+    .check-label input[type=checkbox]{accent-color:#fff;width:15px;height:15px;border-radius:4px;}
+
+    /* ── Loading ── */
+    .loading-spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,0.1);border-top-color:var(--fg);border-radius:50%;animation:spin 0.6s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ── Staff ── */
+    .staff-badge{display:inline-block;font-size:0.55rem;font-weight:700;letter-spacing:0.08em;padding:0.15rem 0.45rem;border-radius:6px;background:var(--fg);color:var(--bg);vertical-align:middle;margin-left:0.5rem;}
+
+    /* ── Force white text ── */
+    body,.section-title,.section-sub,.field-label,.save-msg,.stat-lbl,.badge,.nav-slug,.nav-slug span,.side-label,.side-btn,.auth-logo,.auth-tab,.auth-msg,.claim-modal-title,.claim-modal-sub,.claim-pfx,.claim-modal-msg,.preview-link,.upload-status,.remove-link,.widget-name,.staff-badge,#toast,.field-input,.claim-inp,.stat-num,.nav-logout,.auth-form input,.auth-form input::placeholder,.field-input::placeholder,.claim-inp::placeholder{color:#ffffff !important;}
+    .auth-tab.active{color:#ffffff !important;}
+    .side-btn.active{color:#ffffff !important;}
+    .nav-slug span{color:#ffffff !important;}
+    .preview-link:hover{color:#ffffff !important;}
+    .nav-logout:hover{color:#ffffff !important;}
+    .status-opt{color:#ffffff !important;}
+    .status-opt.active{color:#ffffff !important;}
+    .save-msg{color:#ffffff !important;}
+    .upload-status.ok{color:#6bff8a !important;}
+    .upload-status.err{color:#ff6b6b !important;}
+    .remove-link{color:#ff6b6b !important;}
+    .auth-msg.err{color:#ff6b6b !important;}
+    .claim-modal-msg.err{color:#ff6b6b !important;}
+    #toast.err{color:#ff6b6b !important;}
+    #toast.ok{color:#6bff8a !important;}
+  </style>
+</head>
+<body>
+<div id="toast"></div>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">cxt</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Login</button>
+      <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">Sign up</button>
+    </div>
+    <div class="auth-form" id="auth-form">
+      <input type="text" id="auth-username" placeholder="username" autocomplete="off" maxlength="24">
+      <input type="password" id="auth-pass" placeholder="password (min 6 chars)" autocomplete="current-password">
+      <button class="auth-submit" id="auth-submit">Continue →</button>
+      <div class="auth-msg" id="auth-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CLAIM MODAL -->
+<div id="claim-modal">
+  <div class="claim-box-modal">
+    <div class="claim-modal-title">Claim your username</div>
+    <div class="claim-modal-sub">Pick a unique slug for your profile page.</div>
+    <div class="claim-row">
+      <span class="claim-pfx">cxt.lol/</span>
+      <input class="claim-inp" id="modal-username" type="text" placeholder="yourname" autocomplete="off" spellcheck="false" maxlength="24">
+    </div>
+    <input class="field-input" id="modal-password" type="password" placeholder="password (min 6 chars)" style="margin-top:0.75rem;">
+    <button class="claim-modal-btn" id="claim-modal-btn">Claim username →</button>
+    <div class="claim-modal-msg" id="claim-modal-msg"></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="main-app">
+  <nav>
+    <div class="nav-logo">cxt</div>
+    <div class="nav-right">
+      <span class="nav-slug">cxt.lol/<span id="nav-slug-val">—</span></span>
+      <button class="nav-logout" onclick="logout()">logout</button>
+    </div>
+  </nav>
+  <div class="layout">
+    <aside>
+      <div class="side-label">overview</div>
+      <button class="side-btn active" onclick="nav('overview',this)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Overview
+      </button>
+      <div class="side-label">profile</div>
+      <button class="side-btn" onclick="nav('profile',this)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        Profile
+      </button>
+      <button class="side-btn" onclick="nav('socials',this)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Socials
+      </button>
+      <button class="side-btn" onclick="nav('music',this)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        Music
+      </button>
+      <button class="side-btn" onclick="nav('appearance',this)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        Appearance
+      </button>
+      <button class="side-btn" onclick="nav('layouts',this)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+        Layouts
+      </button>
+      <div class="side-label">account</div>
+      <button class="side-btn" onclick="nav('settings',this)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </button>
+    </aside>
+
+    <main>
+      <!-- OVERVIEW -->
+      <div class="section active" id="sec-overview">
+        <div class="section-header">
+          <div class="section-title">Overview</div>
+          <div class="section-sub">Your profile at a glance.</div>
+        </div>
+        <a class="preview-link" id="preview-link" href="#" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          view your page
+        </a>
+        <div class="stats-grid">
+          <div class="stat-cell"><div class="stat-num" id="ov-views">—</div><div class="stat-lbl">profile views</div></div>
+          <div class="stat-cell"><div class="stat-num" id="ov-links">0</div><div class="stat-lbl">social links</div></div>
+          <div class="stat-cell"><div class="stat-num" id="ov-music">—</div><div class="stat-lbl">track</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Your link</div>
+          <div style="font-size:0.92rem;color:var(--muted);margin-top:0.5rem;">cxt.lol/<span id="ov-slug" style="color:var(--fg);font-weight:700;"></span></div>
+          <div style="margin-top:0.8rem;"><span class="badge">active</span></div>
+        </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div class="section" id="sec-profile">
+        <div class="section-header">
+          <div class="section-title">Profile</div>
+          <div class="section-sub">Customize what visitors see on your page.</div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Basic info</div>
+          <div class="panel-desc">Your display name and bio shown on your profile.</div>
+          <div class="field-row">
+            <div class="field-label">Display name</div>
+            <input class="field-input" id="p-displayname" type="text" placeholder="Your name" maxlength="50">
+          </div>
+          <div class="field-row">
+            <div class="field-label">Bio</div>
+            <textarea class="field-input" id="p-bio" placeholder="Say something about yourself..." maxlength="500"></textarea>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Text effect</div>
+            <select class="field-input" id="p-effect">
+              <option value="">None</option>
+              <option value="glitch">Glitch</option>
+              <option value="chroma">Chroma Rainbow</option>
+              <option value="neon">Neon Glow</option>
+              <option value="fire">Fire</option>
+              <option value="frost">Frost</option>
+              <option value="retro">Retro Vaporwave</option>
+              <option value="matrix">Matrix</option>
+              <option value="hologram">Hologram</option>
+              <option value="outline">Outline</option>
+              <option value="three-d">3D Extrude</option>
+              <option value="neon-flicker">Neon Flicker</option>
+              <option value="aurora">Aurora</option>
+              <option value="shadow-pulse">Shadow Pulse</option>
+              <option value="gradient-slide">Gradient Slide</option>
+            </select>
+          </div>
+          <div class="save-row">
+            <button class="save-btn" onclick="saveProfile()">Save profile</button>
+            <span class="save-msg" id="profile-msg"></span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">Images</div>
+          <div class="panel-desc">Upload files or paste URLs for your avatar, banner, and background.</div>
+          <div class="field-row">
+            <div class="field-label">Avatar</div>
+            <div style="display:flex;flex-direction:column;gap:0.3rem;">
+              <input class="file-input" id="p-avatar-file" type="file" accept="image/*" onchange="previewFile(this,'p-avatar-preview')">
+              <input class="field-input" id="p-avatar-url" type="url" placeholder="or paste image URL" style="font-size:0.78rem;">
+              <img class="preview-thumb" id="p-avatar-preview" src="">
+              <div style="display:flex;gap:0.5rem;align-items:center;"><div class="upload-status" id="p-avatar-status"></div><span class="remove-link" onclick="removeField('avatar_url')">remove</span></div>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Banner</div>
+            <div style="display:flex;flex-direction:column;gap:0.3rem;">
+              <input class="file-input" id="p-banner-file" type="file" accept="image/*" onchange="previewFile(this,'p-banner-preview')">
+              <input class="field-input" id="p-banner-url" type="url" placeholder="or paste image URL" style="font-size:0.78rem;">
+              <img class="preview-thumb" id="p-banner-preview" src="" style="width:100%;height:44px;border-radius:10px;">
+              <div style="display:flex;gap:0.5rem;align-items:center;"><div class="upload-status" id="p-banner-status"></div><span class="remove-link" onclick="removeField('banner_url')">remove</span></div>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Page background</div>
+            <div style="display:flex;flex-direction:column;gap:0.3rem;">
+              <input class="file-input" id="p-bg-file" type="file" accept="image/*" onchange="previewFile(this,'p-bg-preview')">
+              <input class="field-input" id="p-bg-url" type="url" placeholder="or paste image URL" style="font-size:0.78rem;">
+              <div style="display:flex;gap:0.5rem;align-items:center;"><div class="upload-status" id="p-bg-status"></div><span class="remove-link" onclick="removeField('background_url')">remove</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">Avatar decoration</div>
+          <div class="panel-desc">Choose a decoration that wraps around your avatar.</div>
+          <div class="deco-grid" id="deco-grid"></div>
+          <input type="hidden" id="p-decoration" value="">
+          <div style="margin-top:0.6rem;"><span class="remove-link" onclick="document.getElementById('p-decoration').value='';renderDecoGrid();">clear decoration</span></div>
+        </div>
+      </div>
+
+      <!-- SOCIALS -->
+      <div class="section" id="sec-socials">
+        <div class="section-header">
+          <div class="section-title">Socials</div>
+          <div class="section-sub">Links that appear on your profile.</div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Discord</div>
+          <div class="panel-desc">Shows on your profile with a live status indicator.</div>
+          <div class="field-grid">
+            <div class="field-row">
+              <div class="field-label">Username</div>
+              <input class="field-input" id="s-discord" type="text" placeholder="username">
+            </div>
+            <div class="field-row">
+              <div class="field-label">Status</div>
+              <div class="discord-status-row">
+                <div class="status-opt active" data-status="offline" onclick="setStatus('offline',this)"><div class="status-dot-sm" style="background:#747f8d"></div>offline</div>
+                <div class="status-opt" data-status="online" onclick="setStatus('online',this)"><div class="status-dot-sm" style="background:#3ba55c"></div>online</div>
+                <div class="status-opt" data-status="dnd" onclick="setStatus('dnd',this)"><div class="status-dot-sm" style="background:#ed4245"></div>dnd</div>
+                <div class="status-opt" data-status="idle" onclick="setStatus('idle',this)"><div class="status-dot-sm" style="background:#faa81a"></div>idle</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Social links</div>
+          <div class="panel-desc">Add your accounts — they'll appear as clickable pills on your profile.</div>
+          <div class="field-grid">
+            <div class="field-row">
+              <div class="field-label">Twitter / X</div>
+              <input class="field-input" id="s-twitter" type="text" placeholder="@handle">
+            </div>
+            <div class="field-row">
+              <div class="field-label">Instagram</div>
+              <input class="field-input" id="s-instagram" type="text" placeholder="@handle">
+            </div>
+            <div class="field-row">
+              <div class="field-label">YouTube</div>
+              <input class="field-input" id="s-youtube" type="text" placeholder="channel URL or @handle">
+            </div>
+            <div class="field-row">
+              <div class="field-label">GitHub</div>
+              <input class="field-input" id="s-github" type="text" placeholder="username">
+            </div>
+            <div class="field-row">
+              <div class="field-label">Twitch</div>
+              <input class="field-input" id="s-twitch" type="text" placeholder="username">
+            </div>
+            <div class="field-row">
+              <div class="field-label">TikTok</div>
+              <input class="field-input" id="s-tiktok" type="text" placeholder="@handle">
+            </div>
+          </div>
+          <div class="save-row">
+            <button class="save-btn" onclick="saveSocials()">Save socials</button>
+            <span class="save-msg" id="socials-msg"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- MUSIC -->
+      <div class="section" id="sec-music">
+        <div class="section-header">
+          <div class="section-title">Music</div>
+          <div class="section-sub">Your track plays on your profile page with a waveform visualizer.</div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Track</div>
+          <div class="panel-desc">Upload an audio file or paste a direct URL to an mp3/ogg file.</div>
+          <div class="field-row">
+            <div class="field-label">Audio file</div>
+            <input class="file-input" id="m-url-file" type="file" accept="audio/*">
+            <input class="field-input" id="m-url" type="url" placeholder="or paste audio URL (mp3/ogg)" style="font-size:0.78rem;margin-top:0.3rem;">
+            <div class="upload-status" id="m-url-status"></div>
+          </div>
+          <div class="field-grid">
+            <div class="field-row">
+              <div class="field-label">Track name</div>
+              <input class="field-input" id="m-name" type="text" placeholder="Song name">
+            </div>
+            <div class="field-row">
+              <div class="field-label">Artist</div>
+              <input class="field-input" id="m-artist" type="text" placeholder="Artist name">
+            </div>
+          </div>
+          <div class="save-row">
+            <button class="save-btn" onclick="saveMusic()">Save music</button>
+            <span class="save-msg" id="music-msg"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- APPEARANCE -->
+      <div class="section" id="sec-appearance">
+        <div class="section-header">
+          <div class="section-title">Appearance</div>
+          <div class="section-sub">Tweak the visual look of your page.</div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Effects</div>
+          <div class="panel-desc">Toggle visual effects on your profile page.</div>
+          <div class="check-row">
+            <label class="check-label"><input type="checkbox" id="a-rain" checked> Rain animation</label>
+            <label class="check-label"><input type="checkbox" id="a-particles"> Floating particles</label>
+            <label class="check-label"><input type="checkbox" id="a-glow"> Card glow</label>
+            <label class="check-label"><input type="checkbox" id="a-grain"> Film grain overlay</label>
+            <label class="check-label"><input type="checkbox" id="a-border-glow"> Border glow pulse</label>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Accent color</div>
+          <div class="panel-desc">Changes the primary color of text and UI elements on your profile.</div>
+          <div class="color-row">
+            <div class="color-swatch selected" style="background:#ffffff" data-color="#ffffff" onclick="selectColor(this)"></div>
+            <div class="color-swatch" style="background:#a855f7" data-color="#a855f7" onclick="selectColor(this)"></div>
+            <div class="color-swatch" style="background:#3b82f6" data-color="#3b82f6" onclick="selectColor(this)"></div>
+            <div class="color-swatch" style="background:#10b981" data-color="#10b981" onclick="selectColor(this)"></div>
+            <div class="color-swatch" style="background:#f59e0b" data-color="#f59e0b" onclick="selectColor(this)"></div>
+            <div class="color-swatch" style="background:#ef4444" data-color="#ef4444" onclick="selectColor(this)"></div>
+            <input type="color" id="a-custom-color" value="#ffffff" title="Custom color" oninput="customColor(this)">
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Widget order</div>
+          <div class="panel-desc">Drag to reorder the widgets on your profile page.</div>
+          <div class="widget-list" id="widget-order-list"></div>
+        </div>
+        <div class="save-row">
+          <button class="save-btn" onclick="saveAppearance()">Save appearance</button>
+          <span class="save-msg" id="appear-msg"></span>
+        </div>
+      </div>
+
+      <!-- LAYOUTS -->
+      <div class="section" id="sec-layouts">
+        <div class="section-header">
+          <div class="section-title">Layouts</div>
+          <div class="section-sub">Create and share profile presets.</div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Create a layout</div>
+          <div class="panel-desc">Bundle your avatar, banner, and background into a reusable layout.</div>
+          <div class="field-row">
+            <div class="field-label">Name</div>
+            <input class="field-input" id="l-name" type="text" placeholder="My layout" maxlength="30">
+          </div>
+          <div class="field-grid">
+            <div class="field-row">
+              <div class="field-label">Avatar</div>
+              <input class="file-input" id="l-avatar-file" type="file" accept="image/*" onchange="previewFile(this,'l-avatar-preview')">
+              <img class="preview-thumb" id="l-avatar-preview" src="">
+            </div>
+            <div class="field-row">
+              <div class="field-label">Banner</div>
+              <input class="file-input" id="l-banner-file" type="file" accept="image/*" onchange="previewFile(this,'l-banner-preview')">
+              <img class="preview-thumb" id="l-banner-preview" src="" style="width:100%;height:44px;border-radius:10px;">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Background</div>
+            <input class="file-input" id="l-bg-file" type="file" accept="image/*">
+          </div>
+          <div class="save-row">
+            <button class="save-btn" onclick="saveLayout()">Publish layout</button>
+            <span class="save-msg" id="layout-msg"></span>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Browse layouts</div>
+          <div class="panel-desc">Apply a community layout to your profile instantly.</div>
+          <div class="layout-grid" id="layout-grid"></div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="section" id="sec-settings">
+        <div class="section-header">
+          <div class="section-title">Settings</div>
+          <div class="section-sub">Account info and danger zone.</div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Account</div>
+          <div class="field-row">
+            <div class="field-label">Current email</div>
+            <div style="font-size:0.88rem;color:var(--muted);" id="set-email">—</div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Profile link</div>
+            <div style="font-size:0.88rem;color:var(--fg);font-weight:600;">cxt.lol/<span id="set-slug"></span></div>
+          </div>
+          <div id="staff-section" style="display:none;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
+            <div class="field-label">Staff rank</div>
+            <div style="font-size:0.82rem;color:var(--muted);margin-bottom:0.6rem;">You own an admin username. Claim the staff badge for your profile.</div>
+            <button class="save-btn" id="staff-claim-btn" onclick="claimStaff()">Claim staff badge</button>
+            <button class="save-btn" id="staff-remove-btn" style="display:none;" class="save-btn-danger" onclick="removeStaff()">Remove staff badge</button>
+            <span class="save-msg" id="staff-msg"></span>
+          </div>
+        </div>
+        <div class="panel" style="border-color:rgba(255,80,80,0.15);">
+          <div class="panel-title" style="color:#ff6b6b;">Danger zone</div>
+          <div class="panel-desc">Permanently delete your account and all data. This cannot be undone.</div>
+          <button class="save-btn save-btn-danger" onclick="if(confirm('Delete your account? This cannot be undone.'))deleteAccount()">Delete account</button>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+const SUPA_URL='https://rpgtoebzburfzgjoavoj.supabase.co';
+const SUPA_KEY='sb_publishable__gbq2uFnqfe2aNaqP71smA_4e94Q5a6';
+let USER=null, PROFILE=null, discordStatus='offline', accentColor='#ffffff';
+
+const needsHttps=location.protocol!=='https:'&&location.hostname!=='localhost'&&location.hostname!=='127.0.0.1'&&location.protocol!=='file:';
+if(needsHttps)console.warn('Not a secure context — crypto.subtle may be unavailable. Use HTTPS or localhost.');
+if(location.protocol==='file:'){
+  alert('Network error: Cannot fetch from file:// protocol. Please deploy to GitHub Pages or run a local server (node server.js).');
+}
+
+function genId(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});}
+
+async function hashPass(pw){
+  let h=0;for(let i=0;i<pw.length;i++){const c=pw.charCodeAt(i);h=((h<<5)-h)+c;h|=0;}
+  return 'h_'+Math.abs(h).toString(16)+'_'+pw.length;
+}
+
+async function supaFetch(path,opts={}){
+  const r=await fetch(SUPA_URL+path,{...opts,headers:{
+    'apikey':SUPA_KEY,
+    'Authorization':'Bearer '+SUPA_KEY,
+    'Content-Type':'application/json',
+    'Accept':'application/json',
+    'Prefer':'return=representation',
+    ...(opts.headers||{})
+  }});
+  const txt=await r.text();
+  try{return{ok:r.ok,status:r.status,data:JSON.parse(txt)};}catch{return{ok:r.ok,status:r.status,data:txt};}
+}
+
+function toast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='show '+(type||'');
+  clearTimeout(t._hide);t._hide=setTimeout(()=>{t.classList.remove('show');},2500);
+}
+
+let authMode='login';
+function switchTab(m){
+  authMode=m;
+  document.getElementById('tab-login').classList.toggle('active',m==='login');
+  document.getElementById('tab-signup').classList.toggle('active',m==='signup');
+  document.getElementById('auth-submit').textContent=m==='login'?'Login →':'Create account →';
+  document.getElementById('auth-msg').textContent='';
+}
+
+document.getElementById('auth-submit').addEventListener('click', async()=>{
+  const pass=document.getElementById('auth-pass').value;
+  const uname=document.getElementById('auth-username').value.trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
+  const msg=document.getElementById('auth-msg');
+  const btn=document.getElementById('auth-submit');
+  if(!pass){msg.className='auth-msg err';msg.textContent='Enter a password.';return;}
+  if(pass.length<6){msg.className='auth-msg err';msg.textContent='Password must be at least 6 characters.';return;}
+  msg.className='auth-msg';msg.textContent='Please wait...';btn.disabled=true;
+
+  try{
+    if(authMode==='signup'){
+      if(!uname){msg.className='auth-msg err';msg.textContent='Enter a username.';btn.disabled=false;return;}
+      if(uname.length>24){msg.className='auth-msg err';msg.textContent='Username must be 24 characters or less.';btn.disabled=false;return;}
+      const chk=await supaFetch(`/rest/v1/profiles?username=eq.${encodeURIComponent(uname)}&select=username`);
+      if(chk.data?.length){msg.className='auth-msg err';msg.textContent='Username taken.';btn.disabled=false;return;}
+      const pwHash=await hashPass(pass);
+      const ins=await supaFetch('/rest/v1/profiles',{method:'POST',body:JSON.stringify({username:uname,password_hash:pwHash,display_name:uname,bio:'',avatar_url:'',banner_url:'',background_url:'',audio_url:'',audio_name:'',audio_artist:'',discord:'',twitter:'',instagram:'',youtube:'',github:'',twitch:'',tiktok:'',discord_status:'offline',rain:true,accent:'#ffffff',text_effect:'',decoration:'',particles:false,glow:false,grain:false,border_glow:false,views:0})});
+      if(!ins.ok){
+        const det=ins.data?.message||ins.data?.details||JSON.stringify(ins.data);
+        msg.className='auth-msg err';msg.textContent='Error: '+(det||'Could not create profile. Run SQL in Supabase editor first.');btn.disabled=false;return;
+      }
+      PROFILE=ins.data?.[0]||{};
+      if(!PROFILE.id){msg.className='auth-msg err';msg.textContent='Profile created but no ID returned. Check profiles table schema.';btn.disabled=false;return;}
+      USER={id:PROFILE.id};
+      localStorage.setItem('cxt_session',USER.id);
+      btn.disabled=false;
+      showApp();
+    } else {
+      if(!uname){msg.className='auth-msg err';msg.textContent='Enter your username.';btn.disabled=false;return;}
+      const lookup=await supaFetch(`/rest/v1/profiles?username=eq.${encodeURIComponent(uname)}&select=id,password_hash`);
+      if(!lookup.data?.length){msg.className='auth-msg err';msg.textContent='User not found.';btn.disabled=false;return;}
+      const row=lookup.data[0];
+      const pwHash=await hashPass(pass);
+      if(pwHash!==row.password_hash){msg.className='auth-msg err';msg.textContent='Wrong password.';btn.disabled=false;return;}
+      USER={id:row.id};
+      localStorage.setItem('cxt_session',USER.id);
+      const r=await supaFetch(`/rest/v1/profiles?id=eq.${USER.id}&select=*`);
+      if(r.data?.length){PROFILE=r.data[0];}else{msg.className='auth-msg err';msg.textContent='Profile not found.';btn.disabled=false;return;}
+      btn.disabled=false;
+      showApp();
+    }
+    }catch(e){msg.className='auth-msg err';msg.textContent=e.message||'An error occurred. Check console.';btn.disabled=false;console.error(e);}
+});
+
+document.getElementById('auth-pass').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('auth-submit').click();});
+document.getElementById('modal-password').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('claim-modal-btn').click();});
+
+document.getElementById('claim-modal-btn').addEventListener('click', async()=>{
+  const uname=document.getElementById('modal-username').value.trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
+  const msg=document.getElementById('claim-modal-msg');
+  const btn=document.getElementById('claim-modal-btn');
+  if(!uname){msg.className='claim-modal-msg err';msg.textContent='Enter a username.';return;}
+  if(uname.length>24){msg.className='claim-modal-msg err';msg.textContent='Maximum 24 characters.';return;}
+  msg.className='claim-modal-msg';msg.textContent='Checking...';btn.disabled=true;
+  const chk=await supaFetch(`/rest/v1/profiles?username=eq.${encodeURIComponent(uname)}&select=username`);
+  if(chk.data?.length){msg.className='claim-modal-msg err';msg.textContent='Username taken, try another.';btn.disabled=false;return;}
+  const pw=document.getElementById('modal-password').value;
+  if(!pw||pw.length<6){msg.className='claim-modal-msg err';msg.textContent='Password must be at least 6 characters.';btn.disabled=false;return;}
+  const pwHash=await hashPass(pw);
+  const uid=USER?.id||genId();
+  const ins=await supaFetch('/rest/v1/profiles',{method:'POST',body:JSON.stringify({id:uid,username:uname,password_hash:pwHash,display_name:uname,bio:'',avatar_url:'',banner_url:'',background_url:'',audio_url:'',audio_name:'',audio_artist:'',discord:'',twitter:'',instagram:'',youtube:'',github:'',twitch:'',tiktok:'',discord_status:'offline',rain:true,accent:'#ffffff',text_effect:'',decoration:'',particles:false,glow:false,grain:false,border_glow:false,views:0})});
+  if(!ins.ok){msg.className='claim-modal-msg err';msg.textContent='Error claiming. Try again.';btn.disabled=false;return;}
+  PROFILE=ins.data?.[0]||{id:uid,username:uname};
+  USER={id:PROFILE.id};
+  localStorage.setItem('cxt_session',USER.id);
+  document.getElementById('claim-modal').classList.remove('open');
+  btn.disabled=false;
+  showApp();
+});
+
+function showApp(){
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('main-app').classList.add('show');
+  populateFields();
+}
+
+const DECOS=[{n:'air.png',l:'Air'},{n:'angel.png',l:'Angel'},{n:'angry.png',l:'Angry'},{n:'astral_aura.png',l:'Astral Aura'},{n:'big_dill_chain.png',l:'Big Dill Chain'},{n:'black_hole.png',l:'Black Hole'},{n:'blade_storm.png',l:'Blade Storm'},{n:'bloodthirsty.png',l:'Bloodthirsty'},{n:'bloodthirsty_gold.png',l:'Bloodthirsty Gold'},{n:'bloodthirsty_green.png',l:'Bloodthirsty Green'},{n:'bloomling.png',l:'Bloomling'},{n:'blue_futuristic_ui.png',l:'Blue Futuristic'},{n:'blue_gyroscope.png',l:'Blue Gyroscope'},{n:'blue_hyper_helmet.png',l:'Blue Hyper Helmet'},{n:'blue_smoke.png',l:'Blue Smoke'},{n:'blueberry_jam.png',l:'Blueberry Jam'},{n:'bowler_hat.png',l:'Bowler Hat'},{n:'bubble.png',l:'Bubble'},{n:'cat_4.png',l:'Cat 4'},{n:'cat_ears.png',l:'Cat Ears'},{n:'chrysanthemums_twilight.png',l:'Chrysanthemums'},{n:'chun_li.png',l:'Chun Li'},{n:'clicker.png',l:'Clicker'},{n:'confetti_ice.png',l:'Confetti Ice'},{n:'constellations.png',l:'Constellations'},{n:'cozy_cat.png',l:'Cozy Cat'},{n:'crystal_ball_purple.png',l:'Crystal Ball Purple'},{n:'dancing_fairies.png',l:'Dancing Fairies'},{n:'daredevil.png',l:'Daredevil'},{n:'defensive_shield.png',l:'Defensive Shield'},{n:'descendant.png',l:'Descendant'},{n:'dice_azure.png',l:'Dice Azure'},{n:'dice_violet.png',l:'Dice Violet'},{n:'dismay_pink.png',l:'Dismay Pink'},{n:'dragons_smile.png',l:'Dragon Smile'},{n:'dream_dive_stars.png',l:'Dream Dive Stars'},{n:'dusk_and_dawn.png',l:'Dusk & Dawn'},{n:'e_d_hacker.png',l:'ED Hacker'},{n:'endeavor.png',l:'Endeavor'},{n:'espn.png',l:'ESPN'},{n:'fall_leaves.png',l:'Fall Leaves'},{n:'fire.png',l:'Fire'},{n:'fortnite_galactic_battle.png',l:'Fortnite Battle'},{n:'freshly_picked.png',l:'Freshly Picked'},{n:'fried_egg.png',l:'Fried Egg'},{n:'gallica.png',l:'Gallica'},{n:'gold_laurel_wreath.png',l:'Gold Laurel Wreath'},{n:'hank_hill.png',l:'Hank Hill'},{n:'heartbloom.png',l:'Heartbloom'},{n:'heartbloom_green.png',l:'Heartbloom Green'},{n:'helmsman.png',l:'Helmsman'},{n:'hologram_dragon.png',l:'Holo Dragon'},{n:'hood_crimson.png',l:'Crimson Hood'},{n:'in_tears.png',l:'In Tears'},{n:'jean_grey_phoenix.png',l:'Jean Grey'},{n:'ki_energy.png',l:'Ki Energy'},{n:'ki_energy_fuchsia.png',l:'Ki Energy Fuchsia'},{n:'koi_pond.png',l:'Koi Pond'},{n:'lava_blobs_blue.png',l:'Lava Blue'},{n:'lightning.png',l:'Lightning'},{n:'nibbles.png',l:'Nibbles'},{n:'rage.png',l:'Rage'},{n:'rec_room_lightning.png',l:'Rec Lightning'},{n:'shocked.png',l:'Shocked'},{n:'soul_leaving_body.png',l:'Soul'},{n:'spirit_embers.png',l:'Spirit Embers'},{n:'starry_eyed.png',l:'Starry Eyes'},{n:'sweat_drops.png',l:'Sweat Drops'},{n:'victory_crown.png',l:'Victory Crown'},{n:'water.png',l:'Water'},{n:'yunara.png',l:'Yunara'}];
+function renderDecoGrid(){const g=document.getElementById('deco-grid');if(!g)return;const cur=document.getElementById('p-decoration').value;let h='<div class="deco-none'+(cur?'':' active')+'" onclick="pickDeco(\'\')" title="None">✕</div>';const base='https://raw.githubusercontent.com/ccursedd/cxt.lol/main/decorations/';for(const d of DECOS){h+='<div class="deco-opt'+(d.n===cur?' active':'')+'" onclick="pickDeco(\''+d.n+'\')" title="'+d.l+'"><img src="'+base+d.n+'" alt="'+d.l+'" loading="lazy"></div>';}g.innerHTML=h;}
+function pickDeco(v){document.getElementById('p-decoration').value=v;renderDecoGrid();}
+
+function populateFields(){
+  const p=PROFILE;
+  if(!p){return;}
+  document.getElementById('nav-slug-val').textContent=p.username||'—';
+  document.getElementById('ov-slug').textContent=p.username||'—';
+  document.getElementById('set-slug').textContent=p.username||'—';
+  document.getElementById('set-email').textContent='set during signup';
+  const basePath=location.pathname.replace(/\/?[^/]*$/,'')+'/';
+  document.getElementById('preview-link').href=basePath+p.username;
+  document.getElementById('ov-music').textContent=p.audio_name?'✓':'—';
+  let scount=0;['discord','twitter','instagram','youtube','github','twitch','tiktok'].forEach(k=>{if(p[k])scount++;});
+  document.getElementById('ov-links').textContent=scount;
+  document.getElementById('ov-views').textContent=p.views??0;
+  document.getElementById('p-displayname').value=p.display_name||'';
+  document.getElementById('p-bio').value=p.bio||'';
+  document.getElementById('p-effect').value=p.text_effect||'';
+  document.getElementById('p-decoration').value=p.decoration||'';
+  if(typeof renderDecoGrid==='function')renderDecoGrid();
+  if(p.avatar_url){document.getElementById('p-avatar-url').value=p.avatar_url;const el=document.getElementById('p-avatar-preview');el.src=p.avatar_url;el.classList.add('show');}
+  if(p.banner_url){document.getElementById('p-banner-url').value=p.banner_url;const el=document.getElementById('p-banner-preview');el.src=p.banner_url;el.classList.add('show');}
+  if(p.background_url)document.getElementById('p-bg-url').value=p.background_url;
+  ['discord','twitter','instagram','youtube','github','twitch','tiktok'].forEach(k=>{
+    const el=document.getElementById('s-'+k);if(el)el.value=p[k]||'';
+  });
+  discordStatus=p.discord_status||'offline';
+  document.querySelectorAll('.status-opt').forEach(el=>{el.classList.toggle('active',el.dataset.status===discordStatus);});
+  if(p.audio_url){document.getElementById('m-url').value=p.audio_url;document.getElementById('m-url-status').textContent='Audio: '+p.audio_name;}
+  document.getElementById('m-name').value=p.audio_name||'';
+  document.getElementById('m-artist').value=p.audio_artist||'';
+  document.getElementById('a-rain').checked=p.rain!==false;
+  document.getElementById('a-particles').checked=p.particles===true;
+  document.getElementById('a-glow').checked=p.glow===true;
+  document.getElementById('a-grain').checked=p.grain===true;
+  document.getElementById('a-border-glow').checked=p.border_glow===true;
+  accentColor=p.accent||'#ffffff';
+  document.querySelectorAll('.color-swatch').forEach(s=>s.classList.toggle('selected',s.dataset.color===accentColor));
+  if(['1','2'].includes(p.username)){
+    document.getElementById('staff-section').style.display='';
+    if(p.rank==='staff'){document.getElementById('staff-claim-btn').style.display='none';document.getElementById('staff-remove-btn').style.display='';}
+    else{document.getElementById('staff-claim-btn').style.display='';document.getElementById('staff-remove-btn').style.display='none';}
+  }
+  initWidgetOrder();
+}
+
+function nav(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.side-btn').forEach(b=>b.classList.remove('active'));
+  const sec=document.getElementById('sec-'+id);
+  if(sec)sec.classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(id==='layouts')loadLayouts();
+}
+
+function setStatus(s,el){
+  discordStatus=s;
+  document.querySelectorAll('.status-opt').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function selectColor(el){
+  document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));
+  el.classList.add('selected');
+  accentColor=el.dataset.color;
+  document.getElementById('a-custom-color').value=accentColor;
+}
+function customColor(el){
+  document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));
+  accentColor=el.value;
+}
+
+function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+async function removeField(field){
+  if(!confirm('Remove this image?'))return;
+  const id=uid();if(!id)return;
+  const r=await supaFetch(`/rest/v1/profiles?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({[field]:''})});
+  if(r.ok){const upd=await supaFetch(`/rest/v1/profiles?id=eq.${id}&select=*`);if(Array.isArray(upd.data)&&upd.data.length){PROFILE=upd.data[0];populateFields();}toast('Removed','ok');}
+  else toast('Error removing','err');
+}
+
+function previewFile(input,imgId){
+  const img=document.getElementById(imgId);
+  if(!input.files||!input.files[0]){img.classList.remove('show');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{img.src=e.target.result;img.classList.add('show');};
+  reader.readAsDataURL(input.files[0]);
+}
+
+function uid(){return USER?.id;}
+const STORAGE_UPLOAD='https://rpgtoebzburfzgjoavoj.supabase.co/storage/v1/object/profiles/';
+const STORAGE_PUBLIC='https://rpgtoebzburfzgjoavoj.supabase.co/storage/v1/object/public/profiles/';
+function storageUrl(path){return STORAGE_PUBLIC+path;}
+
+async function uploadFile(file,prefix){
+  const ext=file.name.split('.').pop();
+  const path=uid()+'/'+prefix+'.'+ext;
+  const r=await fetch(STORAGE_UPLOAD+path,{
+    method:'POST',
+    headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':file.type,'x-upsert':'true'},
+    body:file
+  });
+  if(!r.ok){const t=await r.text();throw new Error('Upload failed: '+t);}
+  return storageUrl(path);
+}
+
+async function saveProfile(){
+  const id=uid();if(!id)return;
+  const fields={display_name:document.getElementById('p-displayname').value,bio:document.getElementById('p-bio').value,text_effect:document.getElementById('p-effect').value,decoration:document.getElementById('p-decoration').value};
+  try{
+    const af=document.getElementById('p-avatar-file').files[0];
+    if(af){try{const url=await uploadFile(af,'avatar');fields.avatar_url=url;document.getElementById('p-avatar-status').className='upload-status ok';document.getElementById('p-avatar-status').textContent='Uploaded';}catch(e){flashMsg('profile-msg','Upload error: '+e.message);return;}}
+    else{const au=document.getElementById('p-avatar-url').value;if(au)fields.avatar_url=au;}
+    const bf=document.getElementById('p-banner-file').files[0];
+    if(bf){try{const url=await uploadFile(bf,'banner');fields.banner_url=url;document.getElementById('p-banner-status').className='upload-status ok';document.getElementById('p-banner-status').textContent='Uploaded';}catch(e){flashMsg('profile-msg','Upload error: '+e.message);return;}}
+    else{const bu=document.getElementById('p-banner-url').value;if(bu)fields.banner_url=bu;}
+    const bgf=document.getElementById('p-bg-file').files[0];
+    if(bgf){try{const url=await uploadFile(bgf,'bg');fields.background_url=url;document.getElementById('p-bg-status').className='upload-status ok';document.getElementById('p-bg-status').textContent='Uploaded';}catch(e){flashMsg('profile-msg','Upload error: '+e.message);return;}}
+    else{const bgu=document.getElementById('p-bg-url').value;if(bgu)fields.background_url=bgu;}
+  }catch(e){flashMsg('profile-msg','Upload error: '+e.message);toast('Upload failed','err');return;}
+  const r=await supaFetch(`/rest/v1/profiles?id=eq.${id}`,{method:'PATCH',body:JSON.stringify(fields)});
+  flashMsg('profile-msg',r.ok?'Saved!':'Error saving.');
+  if(r.ok){const upd=await supaFetch(`/rest/v1/profiles?id=eq.${id}&select=*`);if(upd.data?.length){PROFILE=upd.data[0];populateFields();}}
+  if(r.ok)toast('Profile saved','ok');else toast('Error saving profile','err');
+}
+async function saveSocials(){
+  const id=uid();if(!id)return;
+  const r=await supaFetch(`/rest/v1/profiles?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({
+    discord:document.getElementById('s-discord').value,
+    twitter:document.getElementById('s-twitter').value,
+    instagram:document.getElementById('s-instagram').value,
+    youtube:document.getElementById('s-youtube').value,
+    github:document.getElementById('s-github').value,
+    twitch:document.getElementById('s-twitch').value,
+    tiktok:document.getElementById('s-tiktok').value,
+    discord_status:discordStatus
+  })});
+  flashMsg('socials-msg',r.ok?'Saved!':'Error saving.');
+  if(r.ok){const upd=await supaFetch(`/rest/v1/profiles?id=eq.${id}&select=*`);if(Array.isArray(upd.data)&&upd.data.length){PROFILE=upd.data[0];populateFields();}toast('Socials saved','ok');}else toast('Error saving socials','err');
+}
+async function saveMusic(){
+  const id=uid();if(!id)return;
+  const fields={audio_name:document.getElementById('m-name').value,audio_artist:document.getElementById('m-artist').value,audio_url:''};
+  try{
+    const mf=document.getElementById('m-url-file').files[0];
+    if(mf){try{fields.audio_url=await uploadFile(mf,'audio');document.getElementById('m-url-status').className='upload-status ok';document.getElementById('m-url-status').textContent='Uploaded';}catch(e){flashMsg('music-msg','Upload error: '+e.message);return;}}
+    else{const mu=document.getElementById('m-url').value;fields.audio_url=mu;}
+  }catch(e){flashMsg('music-msg','Upload error: '+e.message);toast('Upload failed','err');return;}
+  const r=await supaFetch(`/rest/v1/profiles?id=eq.${id}`,{method:'PATCH',body:JSON.stringify(fields)});
+  flashMsg('music-msg',r.ok?'Saved!':'Error saving.');
+  if(r.ok){const upd=await supaFetch(`/rest/v1/profiles?id=eq.${id}&select=*`);if(Array.isArray(upd.data)&&upd.data.length){PROFILE=upd.data[0];populateFields();}toast('Music saved','ok');}else toast('Error saving music','err');
+}
+
+let widgetOrder=['discord','socials','music'];
+const WIDGET_LABELS={discord:'Discord',socials:'Social links',music:'Music player'};
+const WIDGET_ICONS={discord:'<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M20.32 4.37a19.8 19.8 0 0 0-4.93-1.51.07.07 0 0 0-.08.04c-.21.38-.45.87-.61 1.26a18.27 18.27 0 0 0-5.4 0 12.6 12.6 0 0 0-.62-1.26.07.07 0 0 0-.08-.04 19.74 19.74 0 0 0-4.93 1.51.07.07 0 0 0-.03.03C1.07 8.17.32 11.82.69 15.42a.08.08 0 0 0 .03.06 19.9 19.9 0 0 0 5.99 3.03.08.08 0 0 0 .08-.03c.46-.63.87-1.3 1.22-2a.08.08 0 0 0-.04-.11 13.1 13.1 0 0 1-1.87-.9.08.08 0 0 1 0-.13c.13-.09.25-.19.37-.29a.07.07 0 0 1 .07-.01c3.93 1.8 8.18 1.8 12.07 0a.07.07 0 0 1 .08.01c.12.1.24.2.37.29a.08.08 0 0 1 0 .13c-.6.35-1.22.65-1.88.9a.08.08 0 0 0-.04.11c.36.7.77 1.37 1.22 2a.08.08 0 0 0 .08.03 19.83 19.83 0 0 0 6-3.03.08.08 0 0 0 .03-.06c.45-4.58-.75-8.56-3.19-12.05a.06.06 0 0 0-.03-.03z"/></svg>',socials:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>',music:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>'};
+
+function initWidgetOrder(){
+  const list=document.getElementById('widget-order-list');
+  if(!list)return;
+  try{widgetOrder=JSON.parse(PROFILE.widget_order||'["discord","socials","music"]');}catch(e){widgetOrder=['discord','socials','music'];}
+  renderWidgetOrder();
+}
+function renderWidgetOrder(){
+  const list=document.getElementById('widget-order-list');
+  if(!list)return;
+  list.innerHTML='';
+  widgetOrder.forEach((w,i)=>{
+    const row=document.createElement('div');row.className='widget-row';
+    row.innerHTML=`<span class="widget-handle">⠿</span>
+      <span style="opacity:0.5">${WIDGET_ICONS[w]||''}</span>
+      <span class="widget-name">${WIDGET_LABELS[w]||w}</span>
+      <span class="widget-btns">
+        <button class="widget-btn" onclick="moveWidget(${i},-1)" ${i===0?'disabled':''}>↑</button>
+        <button class="widget-btn" onclick="moveWidget(${i},1)" ${i===widgetOrder.length-1?'disabled':''}>↓</button>
+      </span>`;
+    list.appendChild(row);
+  });
+}
+function moveWidget(idx,dir){
+  const nidx=idx+dir;
+  if(nidx<0||nidx>=widgetOrder.length)return;
+  [widgetOrder[idx],widgetOrder[nidx]]=[widgetOrder[nidx],widgetOrder[idx]];
+  renderWidgetOrder();
+}
+
+async function claimStaff(){
+  const id=uid();if(!id)return;
+  const btn=document.getElementById('staff-claim-btn');btn.disabled=true;
+  const r=await supaFetch(`/rest/v1/profiles?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({rank:'staff'})}).catch(()=>({ok:false}));
+  if(r.ok){PROFILE.rank='staff';document.getElementById('staff-claim-btn').style.display='none';document.getElementById('staff-remove-btn').style.display='';toast('Staff badge claimed','ok');}
+  else toast('Staff badge unavailable - run SQL first','err');
+  btn.disabled=false;
+}
+async function removeStaff(){
+  const id=uid();if(!id)return;
+  await supaFetch(`/rest/v1/profiles?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({rank:''})}).catch(()=>{});
+  PROFILE.rank='';document.getElementById('staff-claim-btn').style.display='';document.getElementById('staff-remove-btn').style.display='none';toast('Staff badge removed','ok');
+}
+
+async function saveAppearance(){
+  const id=uid();if(!id)return;
+  let r=await supaFetch(`/rest/v1/profiles?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({
+    rain:document.getElementById('a-rain').checked,
+    particles:document.getElementById('a-particles').checked,
+    glow:document.getElementById('a-glow').checked,
+    grain:document.getElementById('a-grain').checked,
+    border_glow:document.getElementById('a-border-glow').checked,
+    accent:accentColor,
+    widget_order:JSON.stringify(widgetOrder)
+  })});
+  if(!r.ok)r=await supaFetch(`/rest/v1/profiles?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({rain:document.getElementById('a-rain').checked,particles:document.getElementById('a-particles').checked,glow:document.getElementById('a-glow').checked,grain:document.getElementById('a-grain').checked,border_glow:document.getElementById('a-border-glow').checked,accent:accentColor})});
+  flashMsg('appear-msg',r.ok?'Saved!':'Error saving.');
+  if(r.ok)toast('Appearance saved','ok');else toast('Error saving appearance','err');
+}
+async function uploadLayoutFile(file,layoutId,prefix){
+  const ext=file.name.split('.').pop();
+  const path='layout_'+layoutId+'/'+prefix+'.'+ext;
+  const r=await fetch(STORAGE_UPLOAD+path,{
+    method:'POST',
+    headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':file.type,'x-upsert':'true'},
+    body:file
+  });
+  if(!r.ok){const t=await r.text();throw new Error('Upload failed: '+t);}
+  return storageUrl(path);
+}
+
+async function saveLayout(){
+  const name=document.getElementById('l-name').value.trim();
+  if(!name){flashMsg('layout-msg','Enter a name.');return;}
+  const lid=genId();
+  const fields={id:lid,name:name,creator_username:PROFILE?.username||'anonymous'};
+  try{
+    const af=document.getElementById('l-avatar-file').files[0];
+    if(af){fields.avatar_url=await uploadLayoutFile(af,lid,'avatar');}
+    const bf=document.getElementById('l-banner-file').files[0];
+    if(bf){fields.banner_url=await uploadLayoutFile(bf,lid,'banner');}
+    const bgf=document.getElementById('l-bg-file').files[0];
+    if(bgf){fields.background_url=await uploadLayoutFile(bgf,lid,'bg');}
+  }catch(e){flashMsg('layout-msg','Upload error: '+e.message);toast('Layout publish failed','err');return;}
+  const r=await supaFetch('/rest/v1/layouts',{method:'POST',body:JSON.stringify(fields)});
+  flashMsg('layout-msg',r.ok?'Published!':'Error saving.');
+  if(r.ok){toast('Layout published','ok');document.getElementById('l-name').value='';document.getElementById('l-avatar-file').value='';document.getElementById('l-banner-file').value='';document.getElementById('l-bg-file').value='';loadLayouts();}
+  else toast('Error publishing layout','err');
+}
+
+async function loadLayouts(){
+  const grid=document.getElementById('layout-grid');
+  if(!grid)return;
+  grid.innerHTML='<div style="color:var(--muted);font-size:0.82rem;padding:1rem 0;">Loading...</div>';
+  const r=await supaFetch('/rest/v1/layouts?select=*&order=created_at.desc');
+  if(!r.data||!r.data.length){grid.innerHTML='<div style="color:var(--muted);font-size:0.82rem;padding:1rem 0;">No layouts yet. Be the first to publish one.</div>';return;}
+  grid.innerHTML='';
+  for(const l of r.data){
+    const card=document.createElement('div');
+    card.className='layout-card';
+    let thumb='';
+    if(l.banner_url)thumb=`<img class="layout-thumb-banner" src="${l.banner_url}" alt="">`;
+    else if(l.avatar_url)thumb=`<img src="${l.avatar_url}" alt="">`;
+    else thumb='<span style="color:var(--muted);font-size:0.75rem;">no preview</span>';
+    card.innerHTML=`<div class="layout-thumb">${thumb}</div>
+      <div class="layout-card-body">
+        <div class="layout-card-name">${escHtml(l.name)}</div>
+        <div class="layout-card-by">by ${escHtml(l.creator_username)}</div>
+        <button class="layout-apply-btn" onclick="applyLayout('${l.id}')">Apply</button>
+      </div>`;
+    grid.appendChild(card);
+  }
+}
+
+async function applyLayout(lid){
+  if(!confirm('Apply this layout? It will replace your avatar, banner, and background.'))return;
+  const r=await supaFetch(`/rest/v1/layouts?id=eq.${lid}&select=*`);
+  if(!r.data||!r.data[0]){toast('Layout not found','err');return;}
+  const l=r.data[0];
+  const fields={};
+  if(l.avatar_url)fields.avatar_url=l.avatar_url;
+  if(l.banner_url)fields.banner_url=l.banner_url;
+  if(l.background_url)fields.background_url=l.background_url;
+  if(!fields.avatar_url&&!fields.banner_url&&!fields.background_url){toast('No images in this layout','err');return;}
+  const upd=await supaFetch(`/rest/v1/profiles?id=eq.${uid()}`,{method:'PATCH',body:JSON.stringify(fields)});
+  if(upd.ok){const p=await supaFetch(`/rest/v1/profiles?id=eq.${uid()}&select=*`);if(p.data?.length){PROFILE=p.data[0];populateFields();}toast('Layout applied','ok');}
+  else toast('Error applying layout','err');
+}
+
+async function deleteAccount(){
+  const id=uid();if(!id)return;
+  await supaFetch(`/rest/v1/profiles?id=eq.${id}`,{method:'DELETE'});
+  logout();
+}
+function flashMsg(id,txt){
+  const el=document.getElementById(id);if(!el)return;
+  el.textContent=txt;
+  clearTimeout(el._f);el._f=setTimeout(()=>el.textContent='',2500);
+}
+function logout(){
+  localStorage.removeItem('cxt_session');location.href='index.html';
+}
+
+(async function init(){
+  const saved=localStorage.getItem('cxt_session');
+  const p=new URLSearchParams(location.search);
+  if(saved&&saved!=='undefined'&&saved!=='null'&&saved.length>10){
+    USER={id:saved};
+    const r=await supaFetch(`/rest/v1/profiles?id=eq.${saved}&select=*`);
+    if(Array.isArray(r.data)&&r.data.length){PROFILE=r.data[0];showApp();return;}
+    localStorage.removeItem('cxt_session');USER=null;
+    document.getElementById('auth-screen').style.display='none';
+    document.getElementById('claim-modal').classList.add('open');
+    if(p.get('claim'))document.getElementById('modal-username').value=p.get('claim');
+    return;
+  }
+  if(p.get('claim')){document.getElementById('auth-username').value=p.get('claim');document.getElementById('modal-username').value=p.get('claim');}
+})();
+</script>
+</body>
+</html>
